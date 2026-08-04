@@ -1,7 +1,6 @@
-const { PrismaClient } = require("@prisma/client");
+import "dotenv/config";
+import { defineConfig } from "prisma/config";
 
-const prisma = new PrismaClient();
-
-console.log(prisma);
-
-module.exports = prisma;
+export default defineConfig({
+  schema: "prisma/schema.prisma",
+});
