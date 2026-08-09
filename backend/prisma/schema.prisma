@@ -7,62 +7,72 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model colleges {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name       String
-  code       String   @unique
-  email      String   @unique
-  website    String?
-  logo       String?
-  address    String?
-  created_at DateTime @default(now())
-  events     events[]
-  users      users[]
+model College {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  address   String?
+  createdAt DateTime @default(now())
+  events    Event[]
+  users     User[]
+
+  @@map("colleges")
 }
 
-model users {
-  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  college_id    String?         @db.Uuid
-  full_name     String
-  email         String          @unique
+model User {
+  id            String         @id @default(uuid())
+  collegeId     String?        @map("college_id")
+  fullName      String         @map("full_name")
+  email         String         @unique
   password      String
-  role          String          @default("student")
-  profile_photo String?
+  profilePhoto  String?        @map("profile_photo")
   department    String?
   year          Int?
-  is_verified   Boolean         @default(false)
-  created_at    DateTime        @default(now())
-  registrations registrations[]
-  colleges      colleges?       @relation(fields: [college_id], references: [id])
+  isVerified    Boolean        @default(false) @map("is_verified")
+  createdAt     DateTime       @default(now()) @map("created_at")
+  role          UserRole       @default(STUDENT)
+  registrations Registration[]
+  college       College?       @relation(fields: [collegeId], references: [id])
+
+  @@map("users")
 }
 
-model events {
-  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  college_id    String?         @db.Uuid
+model Event {
+  id            String         @id @default(uuid())
   title         String
-  description   String?
-  venue         String?
-  event_date    DateTime
-  created_at    DateTime        @default(now())
-  colleges      colleges?       @relation(fields: [college_id], references: [id])
-  registrations registrations[]
+  description   String
+  venue         String
+  collegeId     String
+  createdAt     DateTime       @default(now())
+  eventDate     DateTime
+  status        EventStatus    @default(UPCOMING)
+  updatedAt     DateTime       @updatedAt
+  college       College        @relation(fields: [collegeId], references: [id])
+  registrations Registration[]
+
+  @@map("events")
 }
 
-model registrations {
-  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id       String   @db.Uuid
-  event_id      String   @db.Uuid
-  registered_at DateTime @default(now())
-  events        events   @relation(fields: [event_id], references: [id], onDelete: Cascade)
-  users         users    @relation(fields: [user_id], references: [id], onDelete: Cascade)
+model Registration {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  eventId   String
+  userId    String
+  event     Event    @relation(fields: [eventId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
-  @@unique([user_id, event_id])
+  @@unique([userId, eventId])
+  @@map("registrations")
 }
 
-model students {
-  id         String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  full_name  String  @db.VarChar(100)
-  email      String  @unique @db.VarChar(100)
-  department String? @db.VarChar(100)
-  year       String? @db.VarChar(10)
+enum UserRole {
+  STUDENT
+  ADMIN
+}
+
+enum EventStatus {
+  UPCOMING
+  ONGOING
+  COMPLETED
+  CANCELLED
 }

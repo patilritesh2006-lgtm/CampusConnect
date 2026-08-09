@@ -1,37 +1,41 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-
 function ProtectedRoute({ children, role }) {
-
-
   const token = localStorage.getItem("token");
+  const userString = localStorage.getItem("user");
 
-  const user = JSON.parse(
-    localStorage.getItem("user")
-  );
+  let user = {};
 
-
-  // No login
-  if(!token){
-
-    return <Navigate to="/login" />;
-
+  try {
+    user = JSON.parse(userString || "{}");
+  } catch (error) {
+    console.error("User data error:", error);
   }
 
-
-  // Role checking
-
-  if(role && user.role !== role){
-
-    return <Navigate to="/" />;
-
+  // ==========================================
+  // NOT LOGGED IN
+  // ==========================================
+  if (!token || !user.id) {
+    return <Navigate to="/login" replace />;
   }
 
+  // ==========================================
+  // ROLE CHECK
+  // ==========================================
+  if (role && user.role !== role) {
+    if (user.role === "ADMIN") {
+      return <Navigate to="/admin-dashboard" replace />;
+    }
+
+    if (user.role === "STUDENT") {
+      return <Navigate to="/student-dashboard" replace />;
+    }
+
+    return <Navigate to="/login" replace />;
+  }
 
   return children;
-
 }
-
 
 export default ProtectedRoute;

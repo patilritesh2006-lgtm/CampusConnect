@@ -1,31 +1,44 @@
 function EventCard({ event, onDelete }) {
-  return (
-    <div className="bg-white shadow-lg rounded-xl p-5">
+  const eventDate = event.eventDate || event.event_date;
 
-      <h2 className="text-xl font-bold">
+  return (
+    <div className="bg-white rounded-xl shadow-md p-6">
+      {/* EVENT TITLE */}
+      <h2 className="text-xl font-bold text-gray-800">
         {event.title}
       </h2>
 
-      <p className="mt-2 text-gray-600">
-        {event.description}
+      {/* DESCRIPTION */}
+      <p className="mt-3 text-gray-600">
+        {event.description || "No description available."}
       </p>
 
-      <p className="mt-3">
+      {/* VENUE */}
+      <p className="mt-4 text-gray-700">
         <strong>Venue:</strong> {event.venue}
       </p>
 
-      <p>
+      {/* DATE */}
+      <p className="mt-2 text-gray-700">
         <strong>Date:</strong>{" "}
-        {new Date(event.event_date).toLocaleDateString()}
+        {eventDate
+          ? new Date(eventDate).toLocaleDateString()
+          : "Not available"}
       </p>
 
+      {/* STATUS */}
+      <p className="mt-2 text-gray-700">
+        <strong>Status:</strong>{" "}
+        {event.status || "UPCOMING"}
+      </p>
+
+      {/* DELETE */}
       <button
         onClick={() => onDelete(event.id)}
-        className="mt-5 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg"
+        className="mt-5 bg-red-600 hover:bg-red-700 text-white px-5 py-2 rounded-lg transition"
       >
         Delete
       </button>
-
     </div>
   );
 }

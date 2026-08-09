@@ -1,92 +1,182 @@
 const prisma = require("../config/prisma");
 
-// ====================== CREATE EVENT ======================
+// ======================================================
+// CREATE EVENT
+// ======================================================
 const createEvent = async (req, res) => {
   try {
-    const { title, description, venue, event_date, college_id } = req.body;
+    console.log("========== CREATE EVENT ==========");
+    console.log("Request body:", req.body);
 
-    if (!title || !event_date) {
+    const {
+      title,
+      description,
+      venue,
+      event_date,
+      eventDate,
+      collegeId,
+      status,
+    } = req.body;
+
+    // ------------------------------------------
+    // Validation
+    // ------------------------------------------
+    if (!title || !venue || (!event_date && !eventDate)) {
       return res.status(400).json({
         success: false,
-        message: "Title and Event Date are required",
+        message: "Title, venue and event date are required.",
       });
     }
 
-    const event = await prisma.events.create({
-      data: {
-        title,
-        description,
-        venue,
-        event_date: new Date(event_date),
-        college_id: college_id || null,
+    // ------------------------------------------
+    // Use either event_date or eventDate
+    // ------------------------------------------
+    const dateValue = event_date || eventDate;
+
+    const parsedDate = new Date(`${dateValue}T00:00:00`);
+
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid event date.",
+      });
+    }
+
+    // ------------------------------------------
+    // Find College
+    // ------------------------------------------
+    let selectedCollegeId = collegeId;
+
+    if (!selectedCollegeId) {
+      const existingCollege = await prisma.college.findFirst();
+
+      if (existingCollege) {
+        selectedCollegeId = existingCollege.id;
+      } else {
+        // Create default college if none exists
+        const newCollege = await prisma.college.create({
+          data: {
+            name: "CampusConnect College",
+            email: "admin@campusconnect.com",
+            address: "CampusConnect",
+          },
+        });
+
+        selectedCollegeId = newCollege.id;
+      }
+    }
+
+    // ------------------------------------------
+    // Verify College exists
+    // ------------------------------------------
+    const college = await prisma.college.findUnique({
+      where: {
+        id: selectedCollegeId,
       },
     });
+
+    if (!college) {
+      return res.status(404).json({
+        success: false,
+        message: "College not found.",
+      });
+    }
+
+    // ------------------------------------------
+    // Create Event
+    // ------------------------------------------
+    const event = await prisma.event.create({
+      data: {
+        title,
+        description: description || "",
+        venue,
+        collegeId: selectedCollegeId,
+        eventDate: parsedDate,
+        status: status || "UPCOMING",
+      },
+      include: {
+        college: true,
+      },
+    });
+
+    console.log("Event created:", event);
 
     return res.status(201).json({
       success: true,
-      message: "Event created successfully",
+      message: "Event created successfully.",
       event,
     });
   } catch (error) {
+    console.error("========== CREATE EVENT ERROR ==========");
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to create event.",
+      error: error.message,
     });
   }
 };
 
-// ====================== GET ALL EVENTS ======================
+// ======================================================
+// GET ALL EVENTS
+// ======================================================
 const getAllEvents = async (req, res) => {
   try {
-    const events = await prisma.events.findMany({
+    console.log("========== GET ALL EVENTS ==========");
+
+    const events = await prisma.event.findMany({
+      orderBy: {
+        eventDate: "asc",
+      },
       include: {
+        college: true,
         registrations: true,
       },
-      orderBy: {
-        event_date: "asc",
-      },
     });
-
-    const formattedEvents = events.map((event) => ({
-      ...event,
-      registrationCount: event.registrations.length,
-    }));
 
     return res.status(200).json({
       success: true,
-      count: formattedEvents.length,
-      events: formattedEvents,
+      count: events.length,
+      events,
     });
   } catch (error) {
+    console.error("========== GET EVENTS ERROR ==========");
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch events.",
+      error: error.message,
     });
   }
 };
 
-// ====================== GET EVENT BY ID ======================
+// ======================================================
+// GET EVENT BY ID
+// ======================================================
 const getEventById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const event = await prisma.events.findUnique({
+    const event = await prisma.event.findUnique({
       where: {
         id,
       },
       include: {
-        registrations: true,
+        college: true,
+        registrations: {
+          include: {
+            user: true,
+          },
+        },
       },
     });
 
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found",
+        message: "Event not found.",
       });
     }
 
@@ -95,21 +185,33 @@ const getEventById = async (req, res) => {
       event,
     });
   } catch (error) {
-    console.error(error);
+    console.error("GET EVENT ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch event.",
+      error: error.message,
     });
   }
 };
 
-// ====================== UPDATE EVENT ======================
+// ======================================================
+// UPDATE EVENT
+// ======================================================
 const updateEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const existingEvent = await prisma.events.findUnique({
+    const {
+      title,
+      description,
+      venue,
+      event_date,
+      eventDate,
+      status,
+    } = req.body;
+
+    const existingEvent = await prisma.event.findUnique({
       where: {
         id,
       },
@@ -118,44 +220,86 @@ const updateEvent = async (req, res) => {
     if (!existingEvent) {
       return res.status(404).json({
         success: false,
-        message: "Event not found",
+        message: "Event not found.",
       });
     }
 
-    const updatedEvent = await prisma.events.update({
+    let parsedDate;
+
+    if (event_date || eventDate) {
+      const dateValue = event_date || eventDate;
+
+      parsedDate = new Date(`${dateValue}T00:00:00`);
+
+      if (isNaN(parsedDate.getTime())) {
+        return res.status(400).json({
+          success: false,
+          message: "Invalid event date.",
+        });
+      }
+    }
+
+    const updatedEvent = await prisma.event.update({
       where: {
         id,
       },
-      data: req.body,
+      data: {
+        ...(title !== undefined && { title }),
+        ...(description !== undefined && { description }),
+        ...(venue !== undefined && { venue }),
+        ...(parsedDate && { eventDate: parsedDate }),
+        ...(status !== undefined && { status }),
+      },
+      include: {
+        college: true,
+      },
     });
 
     return res.status(200).json({
       success: true,
-      message: "Event updated successfully",
+      message: "Event updated successfully.",
       event: updatedEvent,
     });
   } catch (error) {
-    console.error(error);
+    console.error("UPDATE EVENT ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to update event.",
+      error: error.message,
     });
   }
 };
 
-// ====================== DELETE EVENT ======================
+// ======================================================
+// DELETE EVENT
+// ======================================================
 const deleteEvent = async (req, res) => {
   try {
     const { id } = req.params;
 
-    await prisma.registrations.deleteMany({
+    const existingEvent = await prisma.event.findUnique({
       where: {
-        event_id: id,
+        id,
       },
     });
 
-    await prisma.events.delete({
+    if (!existingEvent) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found.",
+      });
+    }
+
+    // Delete registrations first
+    await prisma.registration.deleteMany({
+      where: {
+        eventId: id,
+      },
+    });
+
+    // Delete event
+    await prisma.event.delete({
       where: {
         id,
       },
@@ -163,141 +307,187 @@ const deleteEvent = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Event deleted successfully",
+      message: "Event deleted successfully.",
     });
   } catch (error) {
-    console.error(error);
+    console.error("DELETE EVENT ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to delete event.",
+      error: error.message,
     });
   }
 };
 
-// ====================== REGISTER FOR EVENT ======================
+// ======================================================
+// REGISTER FOR EVENT
+// ======================================================
 const registerForEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { user_id } = req.body;
+    const { userId } = req.body;
 
-    const event = await prisma.events.findUnique({
-      where: { id },
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required.",
+      });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: {
+        id,
+      },
     });
 
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found",
+        message: "Event not found.",
       });
     }
 
-    const user = await prisma.users.findUnique({
-      where: { id: user_id },
+    const user = await prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
     });
 
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: "User not found.",
       });
     }
 
-    const alreadyRegistered = await prisma.registrations.findFirst({
-      where: {
-        user_id,
-        event_id: id,
-      },
-    });
+    const existingRegistration =
+      await prisma.registration.findUnique({
+        where: {
+          userId_eventId: {
+            userId,
+            eventId: id,
+          },
+        },
+      });
 
-    if (alreadyRegistered) {
-      return res.status(400).json({
+    if (existingRegistration) {
+      return res.status(409).json({
         success: false,
-        message: "Already registered for this event",
+        message: "Already registered for this event.",
       });
     }
 
-    const registration = await prisma.registrations.create({
+    const registration = await prisma.registration.create({
       data: {
-        user_id,
-        event_id: id,
+        userId,
+        eventId: id,
       },
     });
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful",
+      message: "Registered successfully.",
       registration,
     });
   } catch (error) {
-    console.error("Register Event Error:", error);
+    console.error("REGISTER EVENT ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to register for event.",
+      error: error.message,
     });
   }
 };
 
-// ====================== GET REGISTERED STUDENTS ======================
+// ======================================================
+// GET REGISTERED STUDENTS
+// ======================================================
 const getRegisteredStudents = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const registrations = await prisma.registrations.findMany({
+    const registrations = await prisma.registration.findMany({
       where: {
-        event_id: id,
+        eventId: id,
       },
       include: {
-        users: {
+        user: {
           select: {
             id: true,
-            full_name: true,
+            fullName: true,
             email: true,
             department: true,
             year: true,
           },
         },
       },
+      orderBy: {
+        createdAt: "desc",
+      },
     });
 
     return res.status(200).json({
       success: true,
       count: registrations.length,
-      students: registrations.map((r) => r.users),
+      students: registrations.map(
+        (registration) => registration.user
+      ),
     });
   } catch (error) {
-    console.error("Get Students Error:", error);
+    console.error("GET REGISTERED STUDENTS ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch registered students.",
+      error: error.message,
     });
   }
 };
 
-// ====================== DASHBOARD STATS ======================
+// ======================================================
+// DASHBOARD STATS
+// ======================================================
 const getDashboardStats = async (req, res) => {
   try {
-    const totalEvents = await prisma.events.count();
-    const totalRegistrations = await prisma.registrations.count();
+    const totalEvents = await prisma.event.count();
+
+    const totalStudents = await prisma.user.count({
+      where: {
+        role: "STUDENT",
+      },
+    });
+
+    const totalRegistrations =
+      await prisma.registration.count();
+
+    const upcomingEvents = await prisma.event.count({
+      where: {
+        status: "UPCOMING",
+      },
+    });
 
     return res.status(200).json({
       success: true,
-      totalEvents,
-      totalRegistrations,
+      stats: {
+        totalEvents,
+        totalStudents,
+        totalRegistrations,
+        upcomingEvents,
+      },
     });
   } catch (error) {
-    console.error("Dashboard Stats Error:", error);
+    console.error("GET DASHBOARD STATS ERROR:", error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch dashboard statistics.",
+      error: error.message,
     });
   }
 };
 
-// ====================== EXPORTS ======================
 module.exports = {
   createEvent,
   getAllEvents,
