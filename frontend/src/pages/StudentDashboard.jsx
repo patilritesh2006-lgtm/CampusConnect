@@ -4,6 +4,10 @@ import { useNavigate } from "react-router-dom";
 function StudentDashboard() {
   const navigate = useNavigate();
 
+  // ==============================
+  // GET LOGGED-IN USER
+  // ==============================
+
   const userString = localStorage.getItem("user");
 
   let user = {};
@@ -18,9 +22,10 @@ function StudentDashboard() {
   console.log("Student dashboard loaded");
   console.log("User:", user);
 
-  // ======================================================
+  // ==============================
   // LOGOUT
-  // ======================================================
+  // ==============================
+
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -28,33 +33,39 @@ function StudentDashboard() {
     navigate("/login");
   };
 
-  // ======================================================
+  // ==============================
   // VIEW EVENTS
-  // ======================================================
+  // ==============================
+
   const handleViewEvents = () => {
     navigate("/student-events");
   };
 
-  // ======================================================
+  // ==============================
   // MY REGISTRATIONS
-  // ======================================================
+  // ==============================
+
   const handleMyRegistrations = () => {
-    alert("My Registrations page is coming next.");
+    navigate("/my-registrations");
   };
 
-  // ======================================================
+  // ==============================
   // NOTIFICATIONS
-  // ======================================================
+  // ==============================
+
   const handleNotifications = () => {
-    alert("Notifications page is coming next.");
+    alert("Notifications feature coming soon.");
   };
 
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* ==================================================
+
+      {/* ==============================
           NAVBAR
-      ================================================== */}
+      ============================== */}
+
       <nav className="bg-white shadow-md px-8 py-4 flex justify-between items-center">
+
         <div>
           <h1 className="text-2xl font-bold text-blue-600">
             CampusConnect
@@ -63,22 +74,27 @@ function StudentDashboard() {
 
         <button
           onClick={handleLogout}
-          className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600"
+          className="bg-red-500 text-white px-5 py-2 rounded-lg hover:bg-red-600 transition"
         >
           Logout
         </button>
+
       </nav>
 
-      {/* ==================================================
+      {/* ==============================
           DASHBOARD
-      ================================================== */}
+      ============================== */}
+
       <main className="p-8">
+
         <div className="max-w-6xl mx-auto">
 
-          {/* ==================================================
+          {/* ==============================
               HEADER
-          ================================================== */}
+          ============================== */}
+
           <div className="mb-8">
+
             <h1 className="text-4xl font-bold text-gray-800">
               Student Dashboard
             </h1>
@@ -86,17 +102,21 @@ function StudentDashboard() {
             <p className="text-gray-600 mt-2">
               Welcome to CampusConnect 👋
             </p>
+
           </div>
 
-          {/* ==================================================
+          {/* ==============================
               USER CARD
-          ================================================== */}
+          ============================== */}
+
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+
             <h2 className="text-2xl font-semibold text-gray-800 mb-4">
               Welcome, {user.fullName || "Student"}!
             </h2>
 
             <div className="space-y-2">
+
               <p>
                 <strong>Email:</strong>{" "}
                 {user.email || "Not available"}
@@ -111,18 +131,23 @@ function StudentDashboard() {
                 <strong>User ID:</strong>{" "}
                 {user.id || "Not available"}
               </p>
+
             </div>
+
           </div>
 
-          {/* ==================================================
-              CARDS
-          ================================================== */}
+          {/* ==============================
+              DASHBOARD CARDS
+          ============================== */}
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
 
-            {/* ==================================================
+            {/* ==============================
                 EVENTS
-            ================================================== */}
+            ============================== */}
+
             <div className="bg-white rounded-xl shadow-md p-6">
+
               <div className="text-4xl mb-4">
                 📅
               </div>
@@ -137,16 +162,19 @@ function StudentDashboard() {
 
               <button
                 onClick={handleViewEvents}
-                className="mt-5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="mt-5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 View Events
               </button>
+
             </div>
 
-            {/* ==================================================
+            {/* ==============================
                 MY REGISTRATIONS
-            ================================================== */}
+            ============================== */}
+
             <div className="bg-white rounded-xl shadow-md p-6">
+
               <div className="text-4xl mb-4">
                 📝
               </div>
@@ -161,16 +189,19 @@ function StudentDashboard() {
 
               <button
                 onClick={handleMyRegistrations}
-                className="mt-5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="mt-5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 My Registrations
               </button>
+
             </div>
 
-            {/* ==================================================
+            {/* ==============================
                 NOTIFICATIONS
-            ================================================== */}
+            ============================== */}
+
             <div className="bg-white rounded-xl shadow-md p-6">
+
               <div className="text-4xl mb-4">
                 🔔
               </div>
@@ -185,15 +216,19 @@ function StudentDashboard() {
 
               <button
                 onClick={handleNotifications}
-                className="mt-5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
+                className="mt-5 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
               >
                 Notifications
               </button>
+
             </div>
 
           </div>
+
         </div>
+
       </main>
+
     </div>
   );
 }

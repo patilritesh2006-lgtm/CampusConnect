@@ -9,9 +9,13 @@ const app = express();
 // ======================================================
 // MIDDLEWARE
 // ======================================================
+
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:5175",
+    ],
     credentials: true,
   })
 );
@@ -21,15 +25,19 @@ app.use(express.json());
 // ======================================================
 // ROUTES
 // ======================================================
+
 const authRoutes = require("./routes/authRoutes");
 const eventRoutes = require("./routes/eventRoutes");
+const registrationRoutes = require("./routes/registrationRoutes");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
+app.use("/api/registrations", registrationRoutes);
 
 // ======================================================
 // TEST ROUTE
 // ======================================================
+
 app.get("/", (req, res) => {
   res.json({
     success: true,
@@ -40,6 +48,7 @@ app.get("/", (req, res) => {
 // ======================================================
 // SERVER
 // ======================================================
+
 const PORT = process.env.PORT || 5000;
 
 app.listen(PORT, () => {

@@ -1,10 +1,15 @@
 const prisma = require("../config/prisma");
 
-// ====================== REGISTER FOR EVENT ======================
+// ======================================================
+// REGISTER FOR EVENT
+// POST /api/registrations
+// ======================================================
+
 const registerForEvent = async (req, res) => {
   try {
     const { user_id, event_id } = req.body;
 
+    // Check required fields
     if (!user_id || !event_id) {
       return res.status(400).json({
         success: false,
@@ -12,9 +17,14 @@ const registerForEvent = async (req, res) => {
       });
     }
 
-    // Check if user exists
-    const user = await prisma.users.findUnique({
-      where: { id: user_id },
+    // ==================================================
+    // CHECK USER
+    // ==================================================
+
+    const user = await prisma.user.findUnique({
+      where: {
+        id: user_id,
+      },
     });
 
     if (!user) {
@@ -24,9 +34,14 @@ const registerForEvent = async (req, res) => {
       });
     }
 
-    // Check if event exists
-    const event = await prisma.events.findUnique({
-      where: { id: event_id },
+    // ==================================================
+    // CHECK EVENT
+    // ==================================================
+
+    const event = await prisma.event.findUnique({
+      where: {
+        id: event_id,
+      },
     });
 
     if (!event) {
@@ -36,11 +51,16 @@ const registerForEvent = async (req, res) => {
       });
     }
 
-    // Prevent duplicate registration
-    const existing = await prisma.registrations.findFirst({
+    // ==================================================
+    // CHECK DUPLICATE REGISTRATION
+    // ==================================================
+
+    const existing = await prisma.registration.findUnique({
       where: {
-        user_id,
-        event_id,
+        userId_eventId: {
+          userId: user_id,
+          eventId: event_id,
+        },
       },
     });
 
@@ -51,58 +71,82 @@ const registerForEvent = async (req, res) => {
       });
     }
 
-    // Register
-    const registration = await prisma.registrations.create({
+    // ==================================================
+    // CREATE REGISTRATION
+    // ==================================================
+
+    const registration = await prisma.registration.create({
       data: {
-        user_id,
-        event_id,
+        userId: user_id,
+        eventId: event_id,
       },
     });
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Registration successful",
       registration,
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("REGISTER EVENT ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
 
-// ====================== GET MY REGISTRATIONS ======================
+// ======================================================
+// GET MY REGISTRATIONS
+// GET /api/registrations/:user_id
+// ======================================================
+
 const getMyRegistrations = async (req, res) => {
   try {
     const { user_id } = req.params;
 
-    const registrations = await prisma.registrations.findMany({
+    if (!user_id) {
+      return res.status(400).json({
+        success: false,
+        message: "User ID is required",
+      });
+    }
+
+    // ==================================================
+    // GET REGISTRATIONS
+    // ==================================================
+
+    const registrations = await prisma.registration.findMany({
       where: {
-        user_id,
+        userId: user_id,
       },
       include: {
-        events: true,
+        event: true,
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
-    res.status(200).json({
+    return res.status(200).json({
       success: true,
+      count: registrations.length,
       registrations,
     });
-
   } catch (error) {
-    console.error(error);
+    console.error("GET MY REGISTRATIONS ERROR:", error);
 
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: error.message,
     });
   }
 };
+
+// ======================================================
+// EXPORT
+// ======================================================
 
 module.exports = {
   registerForEvent,

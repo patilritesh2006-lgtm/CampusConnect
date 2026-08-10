@@ -1,4 +1,5 @@
 const express = require("express");
+
 const router = express.Router();
 
 const {
@@ -6,10 +7,18 @@ const {
   getMyRegistrations,
 } = require("../controllers/registrationController");
 
-// Register for an event
+// ======================================================
+// REGISTER FOR EVENT
+// POST /api/registrations
+// ======================================================
+
 router.post("/", registerForEvent);
 
-// Get all registrations of a student
+// ======================================================
+// GET MY REGISTRATIONS
+// GET /api/registrations/:user_id
+// ======================================================
+
 router.get("/:user_id", getMyRegistrations);
 
 module.exports = router;
