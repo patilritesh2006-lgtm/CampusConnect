@@ -5,30 +5,38 @@ function ProtectedRoute({ children, role }) {
   const token = localStorage.getItem("token");
   const userString = localStorage.getItem("user");
 
-  let user = {};
+  let user = null;
 
   try {
-    user = JSON.parse(userString || "{}");
+    user = JSON.parse(userString || "null");
   } catch (error) {
-    console.error("User data error:", error);
+    console.error("Invalid user data:", error);
+    user = null;
   }
 
-  // ==========================================
-  // NOT LOGGED IN
-  // ==========================================
-  if (!token || !user.id) {
+  // No token or user
+  if (!token || !user) {
     return <Navigate to="/login" replace />;
   }
 
-  // ==========================================
-  // ROLE CHECK
-  // ==========================================
-  if (role && user.role !== role) {
-    if (user.role === "ADMIN") {
+  // Normalize roles
+  const userRole = String(user.role || "").toUpperCase();
+  const requiredRole = String(role || "").toUpperCase();
+
+  console.log("========== PROTECTED ROUTE ==========");
+  console.log("User:", user);
+  console.log("User role:", userRole);
+  console.log("Required role:", requiredRole);
+
+  // Role mismatch
+  if (requiredRole && userRole !== requiredRole) {
+    console.log("ROLE MISMATCH");
+
+    if (userRole === "ADMIN") {
       return <Navigate to="/admin-dashboard" replace />;
     }
 
-    if (user.role === "STUDENT") {
+    if (userRole === "STUDENT") {
       return <Navigate to="/student-dashboard" replace />;
     }
 

@@ -5,7 +5,7 @@ import axios from "axios";
 function Login() {
   const navigate = useNavigate();
 
-  const [role, setRole] = useState("student");
+  const [role, setRole] = useState("STUDENT");
 
   const [formData, setFormData] = useState({
     email: "",
@@ -24,19 +24,17 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
-    setLoading(true);
-
-    console.log("=================================");
-    console.log("LOGIN START");
-    console.log("Selected role:", role);
-    console.log("Email:", formData.email);
-    console.log("=================================");
-
     try {
+      setLoading(true);
+
+      console.log("========== LOGIN START ==========");
+      console.log("Email:", formData.email);
+      console.log("Selected role:", role);
+
       const response = await axios.post(
         "http://localhost:5000/api/auth/login",
         {
-          email: formData.email,
+          email: formData.email.trim(),
           password: formData.password,
         }
       );
@@ -45,56 +43,60 @@ function Login() {
 
       if (!response.data.success) {
         alert(response.data.message || "Login failed.");
-        setLoading(false);
         return;
       }
 
-      const user = response.data.user;
+      const loggedInUser = response.data.user;
       const token = response.data.token;
 
-      console.log("TOKEN RECEIVED:", !!token);
-      console.log("USER:", user);
-      console.log("USER ROLE:", user.role);
+      console.log("Logged in user:", loggedInUser);
+      console.log("Database role:", loggedInUser.role);
 
-      // Convert role to uppercase
-      const userRole = String(user.role).toUpperCase();
+      // Save login information
+      localStorage.setItem("token", token);
+      localStorage.setItem("user", JSON.stringify(loggedInUser));
+
+      // IMPORTANT:
+      // Prisma returns ADMIN / STUDENT
+      const userRole = String(loggedInUser.role).toUpperCase();
 
       // Check selected login type
-      if (role === "student" && userRole !== "STUDENT") {
-        alert("This account is not a Student account.");
-        setLoading(false);
+      if (role !== userRole) {
+        alert(
+          `You selected ${role}, but this account is ${userRole}.`
+        );
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
+
         return;
       }
-
-      if (role === "admin" && userRole !== "ADMIN") {
-        alert("This account is not an Admin account.");
-        setLoading(false);
-        return;
-      }
-
-      // Save token
-      localStorage.setItem("token", token);
-
-      // Save user
-      localStorage.setItem("user", JSON.stringify(user));
-
-      console.log("SAVED TOKEN:", localStorage.getItem("token"));
-      console.log("SAVED USER:", localStorage.getItem("user"));
 
       // Redirect
       if (userRole === "ADMIN") {
-        console.log("➡️ Going to Admin Dashboard");
+        console.log("Redirecting to Admin Dashboard...");
         navigate("/admin-dashboard", { replace: true });
-      } else {
-        console.log("➡️ Going to Student Dashboard");
+      } else if (userRole === "STUDENT") {
+        console.log("Redirecting to Student Dashboard...");
         navigate("/student-dashboard", { replace: true });
+      } else {
+        alert("Unknown user role: " + userRole);
+
+        localStorage.removeItem("token");
+        localStorage.removeItem("user");
       }
     } catch (error) {
-      console.error("LOGIN ERROR:", error);
+      console.error("========== LOGIN ERROR ==========");
+      console.error(error);
+
+      console.error(
+        "Server response:",
+        error.response?.data
+      );
 
       alert(
         error.response?.data?.message ||
-          "Login Failed. Please check your email and password."
+          "Login failed. Please check your email and password."
       );
     } finally {
       setLoading(false);
@@ -102,28 +104,28 @@ function Login() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
       <div className="bg-white shadow-xl rounded-xl p-8 w-full max-w-md">
 
         {/* TITLE */}
-        <h1 className="text-3xl font-bold text-center text-blue-600 mb-6">
+        <h1 className="text-3xl font-bold text-center text-blue-600 mb-2">
           CampusConnect
         </h1>
 
-        <h2 className="text-xl font-semibold text-center mb-5">
+        <h2 className="text-xl font-semibold text-center mb-6">
           Login
         </h2>
 
         {/* ROLE SELECTION */}
-        <div className="flex gap-4 mb-5">
+        <div className="flex gap-4 mb-6">
 
           <button
             type="button"
-            onClick={() => setRole("student")}
-            className={`w-1/2 py-3 rounded-lg ${
-              role === "student"
+            onClick={() => setRole("STUDENT")}
+            className={`w-1/2 py-3 rounded-lg font-semibold ${
+              role === "STUDENT"
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-black"
+                : "bg-gray-200 text-gray-700"
             }`}
           >
             Student
@@ -131,11 +133,11 @@ function Login() {
 
           <button
             type="button"
-            onClick={() => setRole("admin")}
-            className={`w-1/2 py-3 rounded-lg ${
-              role === "admin"
+            onClick={() => setRole("ADMIN")}
+            className={`w-1/2 py-3 rounded-lg font-semibold ${
+              role === "ADMIN"
                 ? "bg-blue-600 text-white"
-                : "bg-gray-200 text-black"
+                : "bg-gray-200 text-gray-700"
             }`}
           >
             Admin
@@ -157,7 +159,7 @@ function Login() {
             value={formData.email}
             onChange={handleChange}
             placeholder="Enter email"
-            className="w-full border border-gray-400 p-3 rounded-lg mb-4"
+            className="w-full border border-gray-300 p-3 rounded-lg mb-4 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
 
@@ -172,7 +174,7 @@ function Login() {
             value={formData.password}
             onChange={handleChange}
             placeholder="Enter password"
-            className="w-full border border-gray-400 p-3 rounded-lg mb-5"
+            className="w-full border border-gray-300 p-3 rounded-lg mb-5 focus:outline-none focus:ring-2 focus:ring-blue-500"
             required
           />
 
@@ -180,19 +182,16 @@ function Login() {
           <button
             type="submit"
             disabled={loading}
-            className={`w-full text-white py-3 rounded-lg ${
-              loading
-                ? "bg-blue-300 cursor-not-allowed"
-                : "bg-blue-600 hover:bg-blue-700"
-            }`}
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
 
         </form>
 
-        <p className="text-center mt-5 text-gray-600">
-          New student? Register here
+        {/* INFO */}
+        <p className="text-center mt-5 text-gray-500 text-sm">
+          Select Student or Admin before logging in.
         </p>
 
       </div>

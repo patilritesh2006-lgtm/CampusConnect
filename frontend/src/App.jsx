@@ -1,17 +1,11 @@
-import React from "react";
-import {
-  BrowserRouter,
-  Routes,
-  Route,
-} from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import StudentDashboard from "./pages/StudentDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
 import StudentEvents from "./pages/StudentEvents";
 import MyRegistrations from "./pages/MyRegistrations";
-import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -20,56 +14,56 @@ function App() {
     <BrowserRouter>
       <Routes>
 
-        {/* ================= HOME ================= */}
-        <Route path="/" element={<Home />} />
+        {/* HOME */}
+        <Route
+          path="/"
+          element={<Home />}
+        />
 
-        {/* ================= LOGIN ================= */}
-        <Route path="/login" element={<Login />} />
+        {/* LOGIN */}
+        <Route
+          path="/login"
+          element={<Login />}
+        />
 
-        {/* ================= STUDENT DASHBOARD ================= */}
+        {/* STUDENT DASHBOARD */}
         <Route
           path="/student-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="STUDENT">
               <StudentDashboard />
             </ProtectedRoute>
           }
         />
 
-        {/* ================= STUDENT EVENTS ================= */}
+        {/* STUDENT EVENTS */}
         <Route
           path="/student-events"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="STUDENT">
               <StudentEvents />
             </ProtectedRoute>
           }
         />
 
-        {/* ================= MY REGISTRATIONS ================= */}
+        {/* MY REGISTRATIONS */}
         <Route
           path="/my-registrations"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="STUDENT">
               <MyRegistrations />
             </ProtectedRoute>
           }
         />
 
-        {/* ================= ADMIN DASHBOARD ================= */}
+        {/* ADMIN DASHBOARD */}
         <Route
           path="/admin-dashboard"
           element={
-            <ProtectedRoute>
+            <ProtectedRoute role="ADMIN">
               <AdminDashboard />
             </ProtectedRoute>
           }
-        />
-
-        {/* ================= 404 ================= */}
-        <Route
-          path="*"
-          element={<NotFound />}
         />
 
       </Routes>
