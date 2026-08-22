@@ -18,9 +18,6 @@ const createEvent = async (req, res) => {
       status,
     } = req.body;
 
-    // ------------------------------------------
-    // Validation
-    // ------------------------------------------
     if (!title || !venue || (!event_date && !eventDate)) {
       return res.status(400).json({
         success: false,
@@ -28,12 +25,8 @@ const createEvent = async (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // Use either event_date or eventDate
-    // ------------------------------------------
     const dateValue = event_date || eventDate;
-
-    const parsedDate = new Date(`${dateValue}T00:00:00`);
+    const parsedDate = new Date(dateValue + "T00:00:00");
 
     if (isNaN(parsedDate.getTime())) {
       return res.status(400).json({
@@ -42,9 +35,6 @@ const createEvent = async (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // Find College
-    // ------------------------------------------
     let selectedCollegeId = collegeId;
 
     if (!selectedCollegeId) {
@@ -53,7 +43,6 @@ const createEvent = async (req, res) => {
       if (existingCollege) {
         selectedCollegeId = existingCollege.id;
       } else {
-        // Create default college if none exists
         const newCollege = await prisma.college.create({
           data: {
             name: "CampusConnect College",
@@ -66,9 +55,6 @@ const createEvent = async (req, res) => {
       }
     }
 
-    // ------------------------------------------
-    // Verify College exists
-    // ------------------------------------------
     const college = await prisma.college.findUnique({
       where: {
         id: selectedCollegeId,
@@ -82,9 +68,6 @@ const createEvent = async (req, res) => {
       });
     }
 
-    // ------------------------------------------
-    // Create Event
-    // ------------------------------------------
     const event = await prisma.event.create({
       data: {
         title,
@@ -224,12 +207,12 @@ const updateEvent = async (req, res) => {
       });
     }
 
-    let parsedDate;
+    let parsedDate = null;
 
     if (event_date || eventDate) {
       const dateValue = event_date || eventDate;
 
-      parsedDate = new Date(`${dateValue}T00:00:00`);
+      parsedDate = new Date(dateValue + "T00:00:00");
 
       if (isNaN(parsedDate.getTime())) {
         return res.status(400).json({
@@ -291,14 +274,12 @@ const deleteEvent = async (req, res) => {
       });
     }
 
-    // Delete registrations first
     await prisma.registration.deleteMany({
       where: {
         eventId: id,
       },
     });
 
-    // Delete event
     await prisma.event.delete({
       where: {
         id,
@@ -326,12 +307,15 @@ const deleteEvent = async (req, res) => {
 const registerForEvent = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userId } = req.body;
+
+    // Get the logged-in user from JWT.
+    // Do not trust userId from the frontend.
+    const userId = req.user.id;
 
     if (!userId) {
-      return res.status(400).json({
+      return res.status(401).json({
         success: false,
-        message: "User ID is required.",
+        message: "Authenticated user not found.",
       });
     }
 
@@ -436,7 +420,10 @@ const getRegisteredStudents = async (req, res) => {
       ),
     });
   } catch (error) {
-    console.error("GET REGISTERED STUDENTS ERROR:", error);
+    console.error(
+      "GET REGISTERED STUDENTS ERROR:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -478,7 +465,10 @@ const getDashboardStats = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("GET DASHBOARD STATS ERROR:", error);
+    console.error(
+      "GET DASHBOARD STATS ERROR:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
@@ -488,6 +478,9 @@ const getDashboardStats = async (req, res) => {
   }
 };
 
+// ======================================================
+// EXPORT
+// ======================================================
 module.exports = {
   createEvent,
   getAllEvents,

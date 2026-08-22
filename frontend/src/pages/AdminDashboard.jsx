@@ -10,6 +10,14 @@ function AdminDashboard() {
   const [user, setUser] = useState({});
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const [stats, setStats] = useState({
+    totalEvents: 0,
+    totalStudents: 0,
+    totalRegistrations: 0,
+    upcomingEvents: 0,
+  });
 
   const [formData, setFormData] = useState({
     title: "",
@@ -38,6 +46,18 @@ function AdminDashboard() {
   }, []);
 
   // ======================================================
+  // GET AUTHORIZATION HEADER
+  // ======================================================
+
+  const getAuthHeaders = () => {
+    const token = localStorage.getItem("token");
+
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  };
+
+  // ======================================================
   // FETCH EVENTS
   // ======================================================
 
@@ -45,7 +65,9 @@ function AdminDashboard() {
     try {
       setLoading(true);
 
-      const response = await axios.get(API);
+      const response = await axios.get(API, {
+        headers: getAuthHeaders(),
+      });
 
       if (response.data.success) {
         setEvents(response.data.events || []);
@@ -62,8 +84,49 @@ function AdminDashboard() {
     }
   };
 
+  // ======================================================
+  // FETCH ADMIN STATS
+  // ======================================================
+
+  const fetchStats = async () => {
+    try {
+      setStatsLoading(true);
+
+      const response = await axios.get(`${API}/stats`, {
+        headers: getAuthHeaders(),
+      });
+
+      console.log("ADMIN STATS:", response.data);
+
+      if (response.data.success) {
+        setStats(
+          response.data.stats || {
+            totalEvents: 0,
+            totalStudents: 0,
+            totalRegistrations: 0,
+            upcomingEvents: 0,
+          }
+        );
+      }
+    } catch (error) {
+      console.error("FETCH STATS ERROR:", error);
+
+      alert(
+        error.response?.data?.message ||
+          "Failed to load dashboard statistics."
+      );
+    } finally {
+      setStatsLoading(false);
+    }
+  };
+
+  // ======================================================
+  // LOAD DASHBOARD DATA
+  // ======================================================
+
   useEffect(() => {
     fetchEvents();
+    fetchStats();
   }, []);
 
   // ======================================================
@@ -99,10 +162,15 @@ function AdminDashboard() {
       if (editingEventId) {
         response = await axios.put(
           `${API}/${editingEventId}`,
-          formData
+          formData,
+          {
+            headers: getAuthHeaders(),
+          }
         );
       } else {
-        response = await axios.post(API, formData);
+        response = await axios.post(API, formData, {
+          headers: getAuthHeaders(),
+        });
       }
 
       if (response.data.success) {
@@ -122,7 +190,8 @@ function AdminDashboard() {
         setEditingEventId(null);
         setShowForm(false);
 
-        fetchEvents();
+        await fetchEvents();
+        await fetchStats();
       }
     } catch (error) {
       console.error("SAVE EVENT ERROR:", error);
@@ -139,8 +208,7 @@ function AdminDashboard() {
   // ======================================================
 
   const handleEdit = (event) => {
-    const eventDate =
-      event.eventDate || event.event_date;
+    const eventDate = event.eventDate || event.event_date;
 
     let formattedDate = "";
 
@@ -181,13 +249,17 @@ function AdminDashboard() {
 
     try {
       const response = await axios.delete(
-        `${API}/${eventId}`
+        `${API}/${eventId}`,
+        {
+          headers: getAuthHeaders(),
+        }
       );
 
       if (response.data.success) {
         alert("Event deleted successfully!");
 
-        fetchEvents();
+        await fetchEvents();
+        await fetchStats();
       }
     } catch (error) {
       console.error("DELETE EVENT ERROR:", error);
@@ -200,7 +272,7 @@ function AdminDashboard() {
   };
 
   // ======================================================
-  // CANCEL EDIT
+  // CANCEL FORM
   // ======================================================
 
   const handleCancel = () => {
@@ -224,6 +296,15 @@ function AdminDashboard() {
     localStorage.removeItem("user");
 
     navigate("/login");
+  };
+
+  // ======================================================
+  // REFRESH DASHBOARD
+  // ======================================================
+
+  const handleRefresh = async () => {
+    await fetchEvents();
+    await fetchStats();
   };
 
   // ======================================================
@@ -251,7 +332,7 @@ function AdminDashboard() {
 
         <button
           onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg"
+          className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
         >
           Logout
         </button>
@@ -266,22 +347,157 @@ function AdminDashboard() {
 
         <div className="max-w-7xl mx-auto">
 
-          {/* HEADER */}
+          {/* ==================================================
+              HEADER
+          ================================================== */}
 
-          <div className="mb-8">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
 
-            <h1 className="text-4xl font-bold text-gray-800">
-              Admin Dashboard
-            </h1>
+            <div>
+              <h1 className="text-4xl font-bold text-gray-800">
+                Admin Dashboard
+              </h1>
 
-            <p className="text-gray-600 mt-2">
-              Welcome, {user.fullName || "Administrator"} 👋
-            </p>
+              <p className="text-gray-600 mt-2">
+                Welcome, {user.fullName || "Administrator"} 👋
+              </p>
+            </div>
+
+            <button
+              onClick={handleRefresh}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold transition"
+            >
+              Refresh Dashboard
+            </button>
 
           </div>
 
           {/* ==================================================
-              ADMIN INFO
+              STATISTICS
+          ================================================== */}
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+
+            {/* TOTAL EVENTS */}
+
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-blue-600">
+
+              <div className="flex justify-between items-start">
+
+                <div>
+                  <p className="text-gray-500 font-medium">
+                    Total Events
+                  </p>
+
+                  <h2 className="text-4xl font-bold text-gray-800 mt-2">
+                    {statsLoading ? "..." : stats.totalEvents}
+                  </h2>
+                </div>
+
+                <div className="text-4xl">
+                  📅
+                </div>
+
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4">
+                All college events
+              </p>
+
+            </div>
+
+            {/* TOTAL STUDENTS */}
+
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-green-600">
+
+              <div className="flex justify-between items-start">
+
+                <div>
+                  <p className="text-gray-500 font-medium">
+                    Total Students
+                  </p>
+
+                  <h2 className="text-4xl font-bold text-gray-800 mt-2">
+                    {statsLoading ? "..." : stats.totalStudents}
+                  </h2>
+                </div>
+
+                <div className="text-4xl">
+                  👨‍🎓
+                </div>
+
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4">
+                Registered students
+              </p>
+
+            </div>
+
+            {/* TOTAL REGISTRATIONS */}
+
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-purple-600">
+
+              <div className="flex justify-between items-start">
+
+                <div>
+                  <p className="text-gray-500 font-medium">
+                    Registrations
+                  </p>
+
+                  <h2 className="text-4xl font-bold text-gray-800 mt-2">
+                    {statsLoading
+                      ? "..."
+                      : stats.totalRegistrations}
+                  </h2>
+                </div>
+
+                <div className="text-4xl">
+                  📝
+                </div>
+
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4">
+                Event registrations
+              </p>
+
+            </div>
+
+            {/* UPCOMING EVENTS */}
+
+            <div className="bg-white rounded-xl shadow-md p-6 border-l-4 border-orange-500">
+
+              <div className="flex justify-between items-start">
+
+                <div>
+                  <p className="text-gray-500 font-medium">
+                    Upcoming Events
+                  </p>
+
+                  <h2 className="text-4xl font-bold text-gray-800 mt-2">
+                    {statsLoading
+                      ? "..."
+                      : stats.upcomingEvents}
+                  </h2>
+                </div>
+
+                <div className="text-4xl">
+                  🚀
+                </div>
+
+              </div>
+
+              <p className="text-sm text-gray-500 mt-4">
+                Events coming soon
+              </p>
+
+            </div>
+
+          </div>
+
+          {/* ==================================================
+              ADMIN INFORMATION
           ================================================== */}
 
           <div className="bg-white rounded-xl shadow-md p-6 mb-8">
@@ -290,20 +506,39 @@ function AdminDashboard() {
               Admin Information
             </h2>
 
-            <p className="mb-2">
-              <strong>Name:</strong>{" "}
-              {user.fullName || "Administrator"}
-            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 
-            <p className="mb-2">
-              <strong>Email:</strong>{" "}
-              {user.email || "Not available"}
-            </p>
+              <div>
+                <p className="text-sm text-gray-500">
+                  Name
+                </p>
 
-            <p>
-              <strong>Role:</strong>{" "}
-              {user.role || "ADMIN"}
-            </p>
+                <p className="font-semibold text-gray-800">
+                  {user.fullName || "Administrator"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">
+                  Email
+                </p>
+
+                <p className="font-semibold text-gray-800">
+                  {user.email || "Not available"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-sm text-gray-500">
+                  Role
+                </p>
+
+                <p className="font-semibold text-blue-600">
+                  {user.role || "ADMIN"}
+                </p>
+              </div>
+
+            </div>
 
           </div>
 
@@ -312,6 +547,8 @@ function AdminDashboard() {
           ================================================== */}
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+
+            {/* CREATE EVENT */}
 
             <button
               onClick={() => {
@@ -325,9 +562,15 @@ function AdminDashboard() {
                 });
 
                 setShowForm(true);
+
+                window.scrollTo({
+                  top: 0,
+                  behavior: "smooth",
+                });
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-6 text-left shadow-md"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-6 text-left shadow-md transition"
             >
+
               <div className="text-4xl mb-3">
                 ➕
               </div>
@@ -339,7 +582,10 @@ function AdminDashboard() {
               <p className="mt-2 text-blue-100">
                 Create a new college event.
               </p>
+
             </button>
+
+            {/* MANAGE EVENTS */}
 
             <button
               onClick={() => {
@@ -349,8 +595,9 @@ function AdminDashboard() {
                     behavior: "smooth",
                   });
               }}
-              className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md"
+              className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md transition"
             >
+
               <div className="text-4xl mb-3">
                 📅
               </div>
@@ -362,7 +609,10 @@ function AdminDashboard() {
               <p className="mt-2 text-gray-600">
                 View, edit and delete events.
               </p>
+
             </button>
+
+            {/* STUDENTS */}
 
             <button
               onClick={() => {
@@ -370,8 +620,9 @@ function AdminDashboard() {
                   "Student management will be added next."
                 );
               }}
-              className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md"
+              className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md transition"
             >
+
               <div className="text-4xl mb-3">
                 👨‍🎓
               </div>
@@ -383,6 +634,7 @@ function AdminDashboard() {
               <p className="mt-2 text-gray-600">
                 View registered students.
               </p>
+
             </button>
 
           </div>
@@ -430,7 +682,7 @@ function AdminDashboard() {
                     value={formData.title}
                     onChange={handleChange}
                     placeholder="Enter event title"
-                    className="w-full border rounded-lg p-3"
+                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
 
@@ -450,7 +702,7 @@ function AdminDashboard() {
                     onChange={handleChange}
                     placeholder="Enter event description"
                     rows="4"
-                    className="w-full border rounded-lg p-3"
+                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
 
                 </div>
@@ -469,7 +721,7 @@ function AdminDashboard() {
                     value={formData.venue}
                     onChange={handleChange}
                     placeholder="Enter venue"
-                    className="w-full border rounded-lg p-3"
+                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
 
@@ -488,7 +740,7 @@ function AdminDashboard() {
                     name="event_date"
                     value={formData.event_date}
                     onChange={handleChange}
-                    className="w-full border rounded-lg p-3"
+                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
 
@@ -528,7 +780,7 @@ function AdminDashboard() {
 
           <section id="events-section">
 
-            <div className="flex justify-between items-center mb-6">
+            <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-6">
 
               <div>
 
@@ -659,13 +911,23 @@ function AdminDashboard() {
                         </button>
 
                         <button
-                          onClick={() =>
-                            handleDelete(event.id)
-                          }
-                          className="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 rounded-lg"
-                        >
-                          Delete
-                        </button>
+  onClick={() => {
+    navigate("/admin-students");
+  }}
+  className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md"
+>
+  <div className="text-4xl mb-3">
+    🎓
+  </div>
+
+  <h2 className="text-xl font-bold">
+    Students
+  </h2>
+
+  <p className="mt-2 text-gray-600">
+    View registered students and their events.
+  </p>
+</button>
 
                       </div>
 

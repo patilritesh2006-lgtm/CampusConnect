@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
+const API = "http://localhost:5000/api";
+
 function Login() {
   const navigate = useNavigate();
 
@@ -24,18 +26,28 @@ function Login() {
   const handleLogin = async (e) => {
     e.preventDefault();
 
+    if (!formData.email.trim() || !formData.password) {
+      alert("Please enter email and password.");
+      return;
+    }
+
     try {
       setLoading(true);
 
       console.log("========== LOGIN START ==========");
-      console.log("Email:", formData.email);
+      console.log("Email:", formData.email.trim());
       console.log("Selected role:", role);
 
       const response = await axios.post(
-        "http://localhost:5000/api/auth/login",
+        `${API}/auth/login`,
         {
           email: formData.email.trim(),
           password: formData.password,
+        },
+        {
+          headers: {
+            "Content-Type": "application/json",
+          },
         }
       );
 
@@ -50,41 +62,81 @@ function Login() {
       const token = response.data.token;
 
       console.log("Logged in user:", loggedInUser);
-      console.log("Database role:", loggedInUser.role);
+      console.log("Database role:", loggedInUser?.role);
 
-      // Save login information
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(loggedInUser));
+      if (!token || !loggedInUser) {
+        alert("Login response is missing user or token.");
+        return;
+      }
 
-      // IMPORTANT:
-      // Prisma returns ADMIN / STUDENT
-      const userRole = String(loggedInUser.role).toUpperCase();
+      const userRole = String(
+        loggedInUser.role || ""
+      ).toUpperCase();
 
-      // Check selected login type
+      // Check selected role against database role
       if (role !== userRole) {
         alert(
           `You selected ${role}, but this account is ${userRole}.`
         );
+        return;
+      }
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+      // Clear old login data
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+
+      // Save new login data
+      localStorage.setItem("token", token);
+      localStorage.setItem(
+        "user",
+        JSON.stringify(loggedInUser)
+      );
+
+      console.log(
+        "Token saved:",
+        localStorage.getItem("token")
+      );
+
+      console.log(
+        "User saved:",
+        localStorage.getItem("user")
+      );
+
+      // Verify localStorage
+      const savedToken = localStorage.getItem("token");
+      const savedUser = localStorage.getItem("user");
+
+      if (!savedToken || !savedUser) {
+        alert("Unable to save login information.");
+        return;
+      }
+
+      console.log("========== LOGIN SUCCESS ==========");
+
+      // Redirect ADMIN
+      if (userRole === "ADMIN") {
+        console.log("Redirecting to /admin-dashboard");
+
+        navigate("/admin-dashboard", {
+          replace: true,
+        });
 
         return;
       }
 
-      // Redirect
-      if (userRole === "ADMIN") {
-        console.log("Redirecting to Admin Dashboard...");
-        navigate("/admin-dashboard", { replace: true });
-      } else if (userRole === "STUDENT") {
-        console.log("Redirecting to Student Dashboard...");
-        navigate("/student-dashboard", { replace: true });
-      } else {
-        alert("Unknown user role: " + userRole);
+      // Redirect STUDENT
+      if (userRole === "STUDENT") {
+        console.log("Redirecting to /student-dashboard");
 
-        localStorage.removeItem("token");
-        localStorage.removeItem("user");
+        navigate("/student-dashboard", {
+          replace: true,
+        });
+
+        return;
       }
+
+      alert(`Unknown user role: ${userRole}`);
+
     } catch (error) {
       console.error("========== LOGIN ERROR ==========");
       console.error(error);
@@ -105,9 +157,9 @@ function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+
       <div className="bg-white shadow-xl rounded-xl p-8 w-full max-w-md">
 
-        {/* TITLE */}
         <h1 className="text-3xl font-bold text-center text-blue-600 mb-2">
           CampusConnect
         </h1>
@@ -117,6 +169,7 @@ function Login() {
         </h2>
 
         {/* ROLE SELECTION */}
+
         <div className="flex gap-4 mb-6">
 
           <button
@@ -146,9 +199,9 @@ function Login() {
         </div>
 
         {/* LOGIN FORM */}
+
         <form onSubmit={handleLogin}>
 
-          {/* EMAIL */}
           <label className="block mb-2 font-medium">
             Email
           </label>
@@ -163,7 +216,6 @@ function Login() {
             required
           />
 
-          {/* PASSWORD */}
           <label className="block mb-2 font-medium">
             Password
           </label>
@@ -178,23 +230,22 @@ function Login() {
             required
           />
 
-          {/* LOGIN BUTTON */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400"
+            className="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-400 transition"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
 
         </form>
 
-        {/* INFO */}
         <p className="text-center mt-5 text-gray-500 text-sm">
           Select Student or Admin before logging in.
         </p>
 
       </div>
+
     </div>
   );
 }

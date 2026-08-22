@@ -1,33 +1,46 @@
-import axios from "axios";
+import API from "./api";
 
-const API = "http://localhost:5000/api";
+// ======================================================
+// CREATE EVENT
+// ======================================================
 
-// Create Event
 export const createEvent = async (eventData) => {
-  const response = await axios.post(`${API}/events`, eventData);
+  const response = await API.post("/events", eventData);
   return response.data;
 };
 
-// Get All Events
+// ======================================================
+// GET ALL EVENTS
+// ======================================================
+
 export const getEvents = async () => {
-  const response = await axios.get(`${API}/events`);
+  const response = await API.get("/events");
   return response.data;
 };
 
-// Get Single Event
+// ======================================================
+// GET SINGLE EVENT
+// ======================================================
+
 export const getEventById = async (id) => {
-  const response = await axios.get(`${API}/events/${id}`);
+  const response = await API.get(`/events/${id}`);
   return response.data;
 };
 
-// Update Event
+// ======================================================
+// UPDATE EVENT
+// ======================================================
+
 export const updateEvent = async (id, eventData) => {
-  const response = await axios.put(`${API}/events/${id}`, eventData);
+  const response = await API.put(`/events/${id}`, eventData);
   return response.data;
 };
 
-// Delete Event
+// ======================================================
+// DELETE EVENT
+// ======================================================
+
 export const deleteEvent = async (id) => {
-  const response = await axios.delete(`${API}/events/${id}`);
+  const response = await API.delete(`/events/${id}`);
   return response.data;
 };

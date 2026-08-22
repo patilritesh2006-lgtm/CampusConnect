@@ -3,17 +3,20 @@ const prisma = require("../config/prisma");
 // ======================================================
 // REGISTER FOR EVENT
 // POST /api/registrations
+// STUDENT ONLY
 // ======================================================
 
 const registerForEvent = async (req, res) => {
   try {
+    console.log("========== REGISTER EVENT ==========");
+
     const { user_id, event_id } = req.body;
 
     // Check required fields
     if (!user_id || !event_id) {
       return res.status(400).json({
         success: false,
-        message: "User ID and Event ID are required",
+        message: "User ID and Event ID are required.",
       });
     }
 
@@ -30,7 +33,7 @@ const registerForEvent = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found",
+        message: "User not found.",
       });
     }
 
@@ -47,7 +50,7 @@ const registerForEvent = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found",
+        message: "Event not found.",
       });
     }
 
@@ -65,9 +68,9 @@ const registerForEvent = async (req, res) => {
     });
 
     if (existing) {
-      return res.status(400).json({
+      return res.status(409).json({
         success: false,
-        message: "Already registered for this event",
+        message: "Already registered for this event.",
       });
     }
 
@@ -82,17 +85,21 @@ const registerForEvent = async (req, res) => {
       },
     });
 
+    console.log("Registration created:", registration);
+
     return res.status(201).json({
       success: true,
-      message: "Registration successful",
+      message: "Registration successful.",
       registration,
     });
   } catch (error) {
-    console.error("REGISTER EVENT ERROR:", error);
+    console.error("========== REGISTER EVENT ERROR ==========");
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to register for event.",
+      error: error.message,
     });
   }
 };
@@ -100,16 +107,19 @@ const registerForEvent = async (req, res) => {
 // ======================================================
 // GET MY REGISTRATIONS
 // GET /api/registrations/:user_id
+// STUDENT ONLY
 // ======================================================
 
 const getMyRegistrations = async (req, res) => {
   try {
+    console.log("========== GET MY REGISTRATIONS ==========");
+
     const { user_id } = req.params;
 
     if (!user_id) {
       return res.status(400).json({
         success: false,
-        message: "User ID is required",
+        message: "User ID is required.",
       });
     }
 
@@ -135,11 +145,13 @@ const getMyRegistrations = async (req, res) => {
       registrations,
     });
   } catch (error) {
-    console.error("GET MY REGISTRATIONS ERROR:", error);
+    console.error("========== GET MY REGISTRATIONS ERROR ==========");
+    console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: "Failed to fetch registrations.",
+      error: error.message,
     });
   }
 };

@@ -13,44 +13,115 @@ const {
   getDashboardStats,
 } = require("../controllers/eventController");
 
+const {
+  authenticateToken,
+  requireAdmin,
+  requireStudent,
+} = require("../middleware/authMiddleware");
+
 // ======================================================
-// DASHBOARD STATS
+// ADMIN DASHBOARD STATS
+// GET /api/events/stats
 // ======================================================
-router.get("/stats", getDashboardStats);
+
+router.get(
+  "/stats",
+  authenticateToken,
+  requireAdmin,
+  getDashboardStats
+);
 
 // ======================================================
 // GET ALL EVENTS
+// GET /api/events
+// STUDENT + ADMIN
 // ======================================================
-router.get("/", getAllEvents);
+
+router.get(
+  "/",
+  authenticateToken,
+  getAllEvents
+);
 
 // ======================================================
 // CREATE EVENT
+// POST /api/events
+// ADMIN ONLY
 // ======================================================
-router.post("/", createEvent);
+
+router.post(
+  "/",
+  authenticateToken,
+  requireAdmin,
+  createEvent
+);
 
 // ======================================================
 // REGISTER FOR EVENT
+// POST /api/events/:id/register
+// STUDENT ONLY
 // ======================================================
-router.post("/:id/register", registerForEvent);
+
+router.post(
+  "/:id/register",
+  authenticateToken,
+  requireStudent,
+  registerForEvent
+);
 
 // ======================================================
 // GET REGISTERED STUDENTS
+// GET /api/events/:id/students
+// ADMIN ONLY
 // ======================================================
-router.get("/:id/students", getRegisteredStudents);
+
+router.get(
+  "/:id/students",
+  authenticateToken,
+  requireAdmin,
+  getRegisteredStudents
+);
 
 // ======================================================
 // GET SINGLE EVENT
+// GET /api/events/:id
+// STUDENT + ADMIN
 // ======================================================
-router.get("/:id", getEventById);
+
+router.get(
+  "/:id",
+  authenticateToken,
+  getEventById
+);
 
 // ======================================================
 // UPDATE EVENT
+// PUT /api/events/:id
+// ADMIN ONLY
 // ======================================================
-router.put("/:id", updateEvent);
+
+router.put(
+  "/:id",
+  authenticateToken,
+  requireAdmin,
+  updateEvent
+);
 
 // ======================================================
 // DELETE EVENT
+// DELETE /api/events/:id
+// ADMIN ONLY
 // ======================================================
-router.delete("/:id", deleteEvent);
+
+router.delete(
+  "/:id",
+  authenticateToken,
+  requireAdmin,
+  deleteEvent
+);
+
+// ======================================================
+// EXPORT ROUTER
+// ======================================================
 
 module.exports = router;
