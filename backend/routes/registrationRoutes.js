@@ -5,6 +5,7 @@ const router = express.Router();
 const {
   registerForEvent,
   getMyRegistrations,
+  cancelRegistration,
 } = require("../controllers/registrationController");
 
 const {
@@ -36,6 +37,17 @@ router.get(
   authenticateToken,
   requireStudent,
   getMyRegistrations
+);
+
+// ======================================================
+// CANCEL REGISTRATION
+// DELETE /api/registrations/:registrationId
+// ======================================================
+
+router.delete(
+  "/:registrationId",
+  authenticateToken,
+  cancelRegistration
 );
 
 // ======================================================

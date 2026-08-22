@@ -1,8 +1,7 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-const API = "http://localhost:5000/api";
+import API from "../api/api";
+import AppNavbar from "../components/AppNavbar";
 
 function AdminStudents() {
   const navigate = useNavigate();
@@ -20,21 +19,7 @@ function AdminStudents() {
     try {
       setLoading(true);
 
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        navigate("/login");
-        return;
-      }
-
-      const response = await axios.get(
-        `${API}/events/students`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const response = await API.get("/students");
 
       console.log("STUDENTS RESPONSE:", response.data);
 
@@ -87,17 +72,6 @@ function AdminStudents() {
   }, []);
 
   // ======================================================
-  // LOGOUT
-  // ======================================================
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    navigate("/login");
-  };
-
-  // ======================================================
   // SEARCH
   // ======================================================
 
@@ -143,58 +117,12 @@ function AdminStudents() {
     );
   };
 
-  // ======================================================
-  // UI
-  // ======================================================
-
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <AppNavbar role="ADMIN" />
 
-      {/* ==================================================
-          NAVBAR
-      ================================================== */}
-
-      <nav className="bg-white shadow-md px-8 py-4 flex justify-between items-center">
-
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600">
-            CampusConnect
-          </h1>
-
-          <p className="text-sm text-gray-500">
-            Admin Panel
-          </p>
-        </div>
-
-        <div className="flex gap-3">
-
-          <button
-            onClick={() =>
-              navigate("/admin-dashboard")
-            }
-            className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2 rounded-lg transition"
-          >
-            Dashboard
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
-          >
-            Logout
-          </button>
-
-        </div>
-
-      </nav>
-
-      {/* ==================================================
-          MAIN
-      ================================================== */}
-
-      <main className="p-8">
-
-        <div className="max-w-7xl mx-auto">
+      <main className="p-6 md:p-8 flex-1">
+        <div className="max-w-7xl mx-auto space-y-6">
 
           {/* ==================================================
               HEADER

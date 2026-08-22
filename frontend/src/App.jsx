@@ -1,55 +1,59 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
-// ======================================================
-// PAGES
-// ======================================================
-
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 
 import StudentDashboard from "./pages/StudentDashboard";
 import StudentEvents from "./pages/StudentEvents";
 import MyRegistrations from "./pages/MyRegistrations";
+import StudentCertificates from "./pages/StudentCertificates";
+import StudentProfile from "./pages/StudentProfile";
+import CalendarView from "./pages/CalendarView";
+import Announcements from "./pages/Announcements";
+import CertificateVerify from "./pages/CertificateVerify";
 
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminStudents from "./pages/AdminStudents";
-
-// ======================================================
-// COMPONENTS
-// ======================================================
+import AdminEventStudents from "./pages/AdminEventStudents";
+import AdminCertificates from "./pages/AdminCertificates";
+import AdminAnalytics from "./pages/AdminAnalytics";
+import NotFound from "./pages/NotFound";
 
 import ProtectedRoute from "./components/ProtectedRoute";
-
-// ======================================================
-// APP
-// ======================================================
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
-
-        {/* ==================================================
-            HOME
-        ================================================== */}
-
-        <Route
-          path="/"
-          element={<Home />}
-        />
-
-        {/* ==================================================
-            LOGIN
-        ================================================== */}
+        <Route path="/" element={<Home />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/verify-certificate" element={<CertificateVerify />} />
+        <Route path="/verify-certificate/:certificateCode" element={<CertificateVerify />} />
 
         <Route
-          path="/login"
-          element={<Login />}
+          path="/calendar"
+          element={
+            <ProtectedRoute>
+              <CalendarView />
+            </ProtectedRoute>
+          }
         />
-
-        {/* ==================================================
-            STUDENT DASHBOARD
-        ================================================== */}
+        <Route
+          path="/announcements"
+          element={
+            <ProtectedRoute>
+              <Announcements />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/student-profile"
+          element={
+            <ProtectedRoute>
+              <StudentProfile />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/student-dashboard"
@@ -59,11 +63,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ==================================================
-            STUDENT EVENTS
-        ================================================== */}
-
         <Route
           path="/student-events"
           element={
@@ -72,11 +71,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ==================================================
-            MY REGISTRATIONS
-        ================================================== */}
-
         <Route
           path="/my-registrations"
           element={
@@ -85,10 +79,14 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ==================================================
-            ADMIN DASHBOARD
-        ================================================== */}
+        <Route
+          path="/student-certificates"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentCertificates />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/admin-dashboard"
@@ -98,11 +96,6 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ==================================================
-            ADMIN STUDENTS
-        ================================================== */}
-
         <Route
           path="/admin-students"
           element={
@@ -111,16 +104,32 @@ function App() {
             </ProtectedRoute>
           }
         />
-
-        {/* ==================================================
-            FALLBACK
-        ================================================== */}
-
         <Route
-          path="*"
-          element={<Home />}
+          path="/admin-certificates"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminCertificates />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-analytics"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-dashboard/events/:eventId/students"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminEventStudents />
+            </ProtectedRoute>
+          }
         />
 
+        <Route path="*" element={<NotFound />} />
       </Routes>
     </BrowserRouter>
   );

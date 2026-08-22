@@ -32,37 +32,88 @@ model User {
   createdAt     DateTime       @default(now()) @map("created_at")
   role          UserRole       @default(STUDENT)
   registrations Registration[]
+  certificates  Certificate[]
+  notifications Notification[]
   college       College?       @relation(fields: [collegeId], references: [id])
 
   @@map("users")
 }
 
 model Event {
-  id            String         @id @default(uuid())
-  title         String
-  description   String
-  venue         String
-  collegeId     String
-  createdAt     DateTime       @default(now())
-  eventDate     DateTime
-  status        EventStatus    @default(UPCOMING)
-  updatedAt     DateTime       @updatedAt
-  college       College        @relation(fields: [collegeId], references: [id])
-  registrations Registration[]
+  id                   String         @id @default(uuid())
+  title                String
+  description          String
+  venue                String
+  category             String?        @default("Workshop")
+  capacity             Int?           @default(100)
+  registrationDeadline DateTime?      @map("registration_deadline")
+  posterUrl            String?        @map("poster_url")
+  collegeId            String
+  createdAt            DateTime       @default(now())
+  eventDate            DateTime
+  status               EventStatus    @default(UPCOMING)
+  updatedAt            DateTime       @updatedAt
+  college              College        @relation(fields: [collegeId], references: [id])
+  registrations        Registration[]
+  certificates         Certificate[]
 
   @@map("events")
 }
 
 model Registration {
-  id        String   @id @default(uuid())
-  createdAt DateTime @default(now())
-  eventId   String
-  userId    String
-  event     Event    @relation(fields: [eventId], references: [id])
-  user      User     @relation(fields: [userId], references: [id])
+  id                 String       @id @default(uuid())
+  createdAt          DateTime     @default(now())
+  attended           Boolean      @default(false)
+  attendanceMarkedAt DateTime?    @map("attendance_marked_at")
+  eventId            String
+  userId             String
+  event              Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  certificate        Certificate?
 
   @@unique([userId, eventId])
   @@map("registrations")
+}
+
+model Certificate {
+  id              String       @id @default(uuid())
+  certificateCode String       @unique @map("certificate_code")
+  issueDate       DateTime     @default(now()) @map("issue_date")
+  userId          String       @map("user_id")
+  eventId         String       @map("event_id")
+  registrationId  String       @unique @map("registration_id")
+  user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event           Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  registration    Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
+  createdAt       DateTime     @default(now()) @map("created_at")
+
+  @@map("certificates")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  title     String
+  message   String
+  type      String   @default("INFO") // INFO, REMINDER, ALERT, CERTIFICATE, ANNOUNCEMENT
+  isRead    Boolean  @default(false) @map("is_read")
+  link      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notifications")
+}
+
+model Announcement {
+  id        String   @id @default(uuid())
+  title     String
+  content   String
+  category  String   @default("GENERAL") // GENERAL, IMPORTANT, EVENT, WORKSHOP, COMPETITION
+  priority  String   @default("NORMAL")  // NORMAL, HIGH, URGENT
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("announcements")
 }
 
 enum UserRole {

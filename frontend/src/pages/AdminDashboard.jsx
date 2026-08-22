@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import axios from "axios";
-
-const API = "http://localhost:5000/api/events";
+import { useEffect, useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import API from "../api/api";
+import AppNavbar from "../components/AppNavbar";
+import { Plus, Users, Award, BarChart3, Megaphone, Calendar, Sparkles, RefreshCw } from "lucide-react";
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -24,6 +24,9 @@ function AdminDashboard() {
     description: "",
     venue: "",
     event_date: "",
+    category: "Workshop",
+    capacity: 100,
+    status: "UPCOMING",
   });
 
   const [showForm, setShowForm] = useState(false);
@@ -46,18 +49,6 @@ function AdminDashboard() {
   }, []);
 
   // ======================================================
-  // GET AUTHORIZATION HEADER
-  // ======================================================
-
-  const getAuthHeaders = () => {
-    const token = localStorage.getItem("token");
-
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  };
-
-  // ======================================================
   // FETCH EVENTS
   // ======================================================
 
@@ -65,20 +56,14 @@ function AdminDashboard() {
     try {
       setLoading(true);
 
-      const response = await axios.get(API, {
-        headers: getAuthHeaders(),
-      });
+      const response = await API.get("/events");
 
       if (response.data.success) {
         setEvents(response.data.events || []);
       }
     } catch (error) {
       console.error("FETCH EVENTS ERROR:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "Failed to load events."
-      );
+      alert(error.response?.data?.message || "Failed to load events.");
     } finally {
       setLoading(false);
     }
@@ -91,12 +76,7 @@ function AdminDashboard() {
   const fetchStats = async () => {
     try {
       setStatsLoading(true);
-
-      const response = await axios.get(`${API}/stats`, {
-        headers: getAuthHeaders(),
-      });
-
-      console.log("ADMIN STATS:", response.data);
+      const response = await API.get("/events/stats");
 
       if (response.data.success) {
         setStats(
@@ -110,28 +90,15 @@ function AdminDashboard() {
       }
     } catch (error) {
       console.error("FETCH STATS ERROR:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "Failed to load dashboard statistics."
-      );
     } finally {
       setStatsLoading(false);
     }
   };
 
-  // ======================================================
-  // LOAD DASHBOARD DATA
-  // ======================================================
-
   useEffect(() => {
     fetchEvents();
     fetchStats();
   }, []);
-
-  // ======================================================
-  // FORM CHANGE
-  // ======================================================
 
   const handleChange = (e) => {
     setFormData({
@@ -140,44 +107,32 @@ function AdminDashboard() {
     });
   };
 
-  // ======================================================
-  // CREATE / UPDATE EVENT
-  // ======================================================
-
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       if (
-        !formData.title ||
-        !formData.venue ||
+        !formData.title?.trim() ||
+        !formData.venue?.trim() ||
         !formData.event_date
       ) {
-        alert("Please fill all required fields.");
+        alert("Please fill all required fields (title, venue, event date).");
         return;
       }
 
       let response;
 
       if (editingEventId) {
-        response = await axios.put(
-          `${API}/${editingEventId}`,
-          formData,
-          {
-            headers: getAuthHeaders(),
-          }
-        );
+        response = await API.put(`/events/${editingEventId}`, formData);
       } else {
-        response = await axios.post(API, formData, {
-          headers: getAuthHeaders(),
-        });
+        response = await API.post("/events", formData);
       }
 
       if (response.data.success) {
         alert(
           editingEventId
             ? "Event updated successfully!"
-            : "Event created successfully!"
+            : "Event created and broadcasted to students successfully!"
         );
 
         setFormData({
@@ -185,6 +140,9 @@ function AdminDashboard() {
           description: "",
           venue: "",
           event_date: "",
+          category: "Workshop",
+          capacity: 100,
+          status: "UPCOMING",
         });
 
         setEditingEventId(null);
@@ -195,17 +153,9 @@ function AdminDashboard() {
       }
     } catch (error) {
       console.error("SAVE EVENT ERROR:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "Failed to save event."
-      );
+      alert(error.response?.data?.message || "Failed to save event.");
     }
   };
-
-  // ======================================================
-  // EDIT EVENT
-  // ======================================================
 
   const handleEdit = (event) => {
     const eventDate = event.eventDate || event.event_date;
@@ -223,6 +173,9 @@ function AdminDashboard() {
       description: event.description || "",
       venue: event.venue || "",
       event_date: formattedDate,
+      category: event.category || "Workshop",
+      capacity: event.capacity || 100,
+      status: event.status || "UPCOMING",
     });
 
     setEditingEventId(event.id);
@@ -234,13 +187,9 @@ function AdminDashboard() {
     });
   };
 
-  // ======================================================
-  // DELETE EVENT
-  // ======================================================
-
   const handleDelete = async (eventId) => {
     const confirmed = window.confirm(
-      "Are you sure you want to delete this event?"
+      "Are you sure you want to delete this event? This will also remove any student registrations for this event."
     );
 
     if (!confirmed) {
@@ -248,32 +197,18 @@ function AdminDashboard() {
     }
 
     try {
-      const response = await axios.delete(
-        `${API}/${eventId}`,
-        {
-          headers: getAuthHeaders(),
-        }
-      );
+      const response = await API.delete(`/events/${eventId}`);
 
       if (response.data.success) {
         alert("Event deleted successfully!");
-
         await fetchEvents();
         await fetchStats();
       }
     } catch (error) {
       console.error("DELETE EVENT ERROR:", error);
-
-      alert(
-        error.response?.data?.message ||
-          "Failed to delete event."
-      );
+      alert(error.response?.data?.message || "Failed to delete event.");
     }
   };
-
-  // ======================================================
-  // CANCEL FORM
-  // ======================================================
 
   const handleCancel = () => {
     setFormData({
@@ -281,95 +216,48 @@ function AdminDashboard() {
       description: "",
       venue: "",
       event_date: "",
+      category: "Workshop",
+      capacity: 100,
+      status: "UPCOMING",
     });
 
     setEditingEventId(null);
     setShowForm(false);
   };
 
-  // ======================================================
-  // LOGOUT
-  // ======================================================
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
-    navigate("/login");
-  };
-
-  // ======================================================
-  // REFRESH DASHBOARD
-  // ======================================================
-
   const handleRefresh = async () => {
     await fetchEvents();
     await fetchStats();
   };
 
-  // ======================================================
-  // UI
-  // ======================================================
-
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
+      <AppNavbar role="ADMIN" />
 
-      {/* ==================================================
-          NAVBAR
-      ================================================== */}
-
-      <nav className="bg-white shadow-md px-8 py-4 flex justify-between items-center">
-
-        <div>
-          <h1 className="text-2xl font-bold text-blue-600">
-            CampusConnect
-          </h1>
-
-          <p className="text-sm text-gray-500">
-            Admin Panel
-          </p>
-        </div>
-
-        <button
-          onClick={handleLogout}
-          className="bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-lg transition"
-        >
-          Logout
-        </button>
-
-      </nav>
-
-      {/* ==================================================
-          MAIN
-      ================================================== */}
-
-      <main className="p-8">
-
-        <div className="max-w-7xl mx-auto">
-
-          {/* ==================================================
-              HEADER
-          ================================================== */}
-
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-8">
-
+      <main className="p-6 md:p-8 flex-1">
+        <div className="max-w-7xl mx-auto space-y-6">
+          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
             <div>
-              <h1 className="text-4xl font-bold text-gray-800">
-                Admin Dashboard
+              <div className="flex items-center gap-2 text-purple-600 font-semibold text-xs uppercase tracking-wider mb-1">
+                <Sparkles size={16} />
+                Administrator Workspace
+              </div>
+              <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+                Admin Control Center
               </h1>
-
-              <p className="text-gray-600 mt-2">
-                Welcome, {user.fullName || "Administrator"} 👋
+              <p className="text-gray-600 text-sm mt-1">
+                Welcome back, {user.fullName || "Administrator"} 👋 • College Event Management System
               </p>
             </div>
 
-            <button
-              onClick={handleRefresh}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-3 rounded-lg font-semibold transition"
-            >
-              Refresh Dashboard
-            </button>
-
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleRefresh}
+                className="bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2.5 rounded-xl font-semibold text-xs flex items-center gap-1.5 shadow-sm transition"
+              >
+                <RefreshCw size={14} /> Refresh Data
+              </button>
+            </div>
           </div>
 
           {/* ==================================================
@@ -546,97 +434,91 @@ function AdminDashboard() {
               ACTION BUTTONS
           ================================================== */}
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-8">
             {/* CREATE EVENT */}
-
             <button
               onClick={() => {
                 setEditingEventId(null);
-
                 setFormData({
                   title: "",
                   description: "",
                   venue: "",
                   event_date: "",
+                  category: "Workshop",
+                  capacity: 100,
+                  status: "UPCOMING",
                 });
-
                 setShowForm(true);
-
-                window.scrollTo({
-                  top: 0,
-                  behavior: "smooth",
-                });
+                window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="bg-blue-600 hover:bg-blue-700 text-white rounded-xl p-6 text-left shadow-md transition"
+              className="bg-blue-600 hover:bg-blue-700 text-white rounded-2xl p-5 text-left shadow-md transition flex flex-col justify-between"
             >
-
-              <div className="text-4xl mb-3">
-                ➕
+              <div className="text-2xl mb-2">➕</div>
+              <div>
+                <h2 className="text-sm font-bold">Create Event</h2>
+                <p className="text-[11px] text-blue-100 mt-0.5">New college event</p>
               </div>
-
-              <h2 className="text-xl font-bold">
-                Create Event
-              </h2>
-
-              <p className="mt-2 text-blue-100">
-                Create a new college event.
-              </p>
-
             </button>
 
-            {/* MANAGE EVENTS */}
-
+            {/* STUDENTS & ATTENDANCE */}
             <button
-              onClick={() => {
-                document
-                  .getElementById("events-section")
-                  ?.scrollIntoView({
-                    behavior: "smooth",
-                  });
-              }}
-              className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md transition"
+              onClick={() => navigate("/admin-students")}
+              className="bg-white hover:bg-gray-50 text-gray-800 rounded-2xl p-5 text-left shadow-md border border-gray-100 transition flex flex-col justify-between"
             >
-
-              <div className="text-4xl mb-3">
-                📅
+              <div className="text-2xl mb-2">👨‍🎓</div>
+              <div>
+                <h2 className="text-sm font-bold">Students & Roster</h2>
+                <p className="text-[11px] text-gray-500 mt-0.5">Manage students</p>
               </div>
-
-              <h2 className="text-xl font-bold">
-                Manage Events
-              </h2>
-
-              <p className="mt-2 text-gray-600">
-                View, edit and delete events.
-              </p>
-
             </button>
 
-            {/* STUDENTS */}
-
+            {/* CERTIFICATES REGISTRY */}
             <button
-              onClick={() => {
-                alert(
-                  "Student management will be added next."
-                );
-              }}
-              className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md transition"
+              onClick={() => navigate("/admin-certificates")}
+              className="bg-white hover:bg-gray-50 text-gray-800 rounded-2xl p-5 text-left shadow-md border border-gray-100 transition flex flex-col justify-between"
             >
-
-              <div className="text-4xl mb-3">
-                👨‍🎓
+              <div className="text-2xl mb-2">📜</div>
+              <div>
+                <h2 className="text-sm font-bold">Certificates</h2>
+                <p className="text-[11px] text-gray-500 mt-0.5">Issued credentials</p>
               </div>
-
-              <h2 className="text-xl font-bold">
-                Students
-              </h2>
-
-              <p className="mt-2 text-gray-600">
-                View registered students.
-              </p>
-
             </button>
 
+            {/* ANALYTICS */}
+            <button
+              onClick={() => navigate("/admin-analytics")}
+              className="bg-white hover:bg-gray-50 text-gray-800 rounded-2xl p-5 text-left shadow-md border border-gray-100 transition flex flex-col justify-between"
+            >
+              <div className="text-2xl mb-2">📊</div>
+              <div>
+                <h2 className="text-sm font-bold">Analytics</h2>
+                <p className="text-[11px] text-gray-500 mt-0.5">Stats & reports</p>
+              </div>
+            </button>
+
+            {/* ANNOUNCEMENTS */}
+            <button
+              onClick={() => navigate("/announcements")}
+              className="bg-white hover:bg-gray-50 text-gray-800 rounded-2xl p-5 text-left shadow-md border border-gray-100 transition flex flex-col justify-between"
+            >
+              <div className="text-2xl mb-2">📢</div>
+              <div>
+                <h2 className="text-sm font-bold">Notice Board</h2>
+                <p className="text-[11px] text-gray-500 mt-0.5">Publish alerts</p>
+              </div>
+            </button>
+
+            {/* CALENDAR */}
+            <button
+              onClick={() => navigate("/calendar")}
+              className="bg-white hover:bg-gray-50 text-gray-800 rounded-2xl p-5 text-left shadow-md border border-gray-100 transition flex flex-col justify-between"
+            >
+              <div className="text-2xl mb-2">📅</div>
+              <div>
+                <h2 className="text-sm font-bold">Calendar</h2>
+                <p className="text-[11px] text-gray-500 mt-0.5">Schedule grid</p>
+              </div>
+            </button>
           </div>
 
           {/* ==================================================
@@ -644,133 +526,149 @@ function AdminDashboard() {
           ================================================== */}
 
           {showForm && (
-            <div className="bg-white rounded-xl shadow-md p-8 mb-8">
-
+            <div className="bg-white rounded-3xl shadow-xl p-8 mb-8 border border-gray-100">
               <div className="flex justify-between items-center mb-6">
-
-                <h2 className="text-2xl font-bold">
-                  {editingEventId
-                    ? "Edit Event"
-                    : "Create New Event"}
+                <h2 className="text-2xl font-extrabold text-gray-900">
+                  {editingEventId ? "Edit Event Details" : "Create New College Event"}
                 </h2>
-
                 <button
                   onClick={handleCancel}
-                  className="text-gray-500 hover:text-gray-800 text-2xl"
+                  className="text-gray-400 hover:text-gray-700 text-xl font-bold p-1 rounded-lg"
                 >
                   ✕
                 </button>
-
               </div>
 
-              <form
-                onSubmit={handleSubmit}
-                className="space-y-5"
-              >
-
-                {/* TITLE */}
-
+              <form onSubmit={handleSubmit} className="space-y-5">
                 <div>
-
-                  <label className="block font-semibold mb-2">
-                    Event Title
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                    Event Title *
                   </label>
-
                   <input
                     type="text"
                     name="title"
                     value={formData.title}
                     onChange={handleChange}
-                    placeholder="Enter event title"
-                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="e.g. Annual Hackathon 2026"
+                    className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     required
                   />
-
                 </div>
 
-                {/* DESCRIPTION */}
-
                 <div>
-
-                  <label className="block font-semibold mb-2">
+                  <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
                     Description
                   </label>
-
                   <textarea
                     name="description"
                     value={formData.description}
                     onChange={handleChange}
-                    placeholder="Enter event description"
-                    rows="4"
-                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Enter event overview, agenda, prerequisites..."
+                    rows="3"
+                    className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-
                 </div>
 
-                {/* VENUE */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Venue *
+                    </label>
+                    <input
+                      type="text"
+                      name="venue"
+                      value={formData.venue}
+                      onChange={handleChange}
+                      placeholder="e.g. Main Auditorium"
+                      className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
 
-                <div>
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Event Date *
+                    </label>
+                    <input
+                      type="date"
+                      name="event_date"
+                      value={formData.event_date}
+                      onChange={handleChange}
+                      className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
 
-                  <label className="block font-semibold mb-2">
-                    Venue
-                  </label>
-
-                  <input
-                    type="text"
-                    name="venue"
-                    value={formData.venue}
-                    onChange={handleChange}
-                    placeholder="Enter venue"
-                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Category
+                    </label>
+                    <select
+                      name="category"
+                      value={formData.category}
+                      onChange={handleChange}
+                      className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="Workshop">Workshop</option>
+                      <option value="Hackathon">Hackathon</option>
+                      <option value="Seminar">Seminar</option>
+                      <option value="Cultural">Cultural</option>
+                      <option value="Sports">Sports</option>
+                      <option value="Conference">Conference</option>
+                    </select>
+                  </div>
                 </div>
 
-                {/* DATE */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Capacity (Max Seats)
+                    </label>
+                    <input
+                      type="number"
+                      name="capacity"
+                      min="1"
+                      value={formData.capacity}
+                      onChange={handleChange}
+                      className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
 
-                <div>
-
-                  <label className="block font-semibold mb-2">
-                    Event Date
-                  </label>
-
-                  <input
-                    type="date"
-                    name="event_date"
-                    value={formData.event_date}
-                    onChange={handleChange}
-                    className="w-full border rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 uppercase mb-1">
+                      Status
+                    </label>
+                    <select
+                      name="status"
+                      value={formData.status}
+                      onChange={handleChange}
+                      className="w-full border rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                    >
+                      <option value="UPCOMING">Upcoming</option>
+                      <option value="ONGOING">Ongoing</option>
+                      <option value="COMPLETED">Completed</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
                 </div>
 
-                {/* BUTTONS */}
-
-                <div className="flex gap-4">
-
+                <div className="flex gap-3 pt-2">
                   <button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg"
+                    className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-6 py-3 rounded-xl text-sm shadow-md transition"
                   >
-                    {editingEventId
-                      ? "Update Event"
-                      : "Create Event"}
+                    {editingEventId ? "Update Event" : "Create & Broadcast Event"}
                   </button>
 
                   <button
                     type="button"
                     onClick={handleCancel}
-                    className="bg-gray-200 hover:bg-gray-300 px-6 py-3 rounded-lg"
+                    className="bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold px-6 py-3 rounded-xl text-sm transition"
                   >
                     Cancel
                   </button>
-
                 </div>
-
               </form>
-
             </div>
           )}
 
@@ -853,84 +751,81 @@ function AdminDashboard() {
                   return (
                     <div
                       key={event.id}
-                      className="bg-white rounded-xl shadow-md p-6"
+                      className="bg-white rounded-2xl shadow-md p-6 flex flex-col justify-between hover:shadow-xl transition border border-gray-100"
                     >
+                      <div>
+                        <div className="flex justify-between items-start mb-3">
+                          <span className="bg-blue-100 text-blue-800 text-[11px] font-bold px-2.5 py-0.5 rounded-full uppercase">
+                            {event.category || "Workshop"}
+                          </span>
 
-                      <div className="text-4xl mb-4">
-                        📅
-                      </div>
+                          <span className="bg-gray-100 text-gray-700 text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+                            {event.status || "UPCOMING"}
+                          </span>
+                        </div>
 
-                      <h3 className="text-2xl font-bold text-gray-800">
-                        {event.title}
-                      </h3>
+                        <h3 className="text-xl font-bold text-gray-900 line-clamp-1">
+                          {event.title}
+                        </h3>
 
-                      <p className="text-gray-600 mt-3">
-                        {event.description ||
-                          "No description available."}
-                      </p>
-
-                      <div className="mt-5 space-y-2">
-
-                        <p>
-                          <strong>Venue:</strong>{" "}
-                          {event.venue}
+                        <p className="text-gray-600 text-xs mt-2 line-clamp-2">
+                          {event.description || "No description available."}
                         </p>
 
-                        <p>
-                          <strong>Date:</strong>{" "}
-                          {eventDate
-                            ? new Date(
-                                eventDate
-                              ).toLocaleDateString()
-                            : "Not available"}
-                        </p>
+                        <div className="mt-4 space-y-1.5 text-xs text-gray-600 border-t pt-3">
+                          <p>
+                            <strong>Venue:</strong> {event.venue}
+                          </p>
 
-                        <p>
-                          <strong>Status:</strong>{" "}
-                          {event.status || "UPCOMING"}
-                        </p>
+                          <p>
+                            <strong>Date:</strong>{" "}
+                            {eventDate
+                              ? new Date(eventDate).toLocaleDateString("en-US", {
+                                  year: "numeric",
+                                  month: "short",
+                                  day: "numeric",
+                                })
+                              : "TBA"}
+                          </p>
 
-                        <p>
-                          <strong>Registrations:</strong>{" "}
-                          {event.registrations?.length || 0}
-                        </p>
+                          <p>
+                            <strong>Capacity:</strong> {event.capacity || 100} seats
+                          </p>
 
+                          <p>
+                            <strong>Registrations:</strong>{" "}
+                            <span className="font-semibold text-blue-600">
+                              {event.registrations?.length || 0}
+                            </span>
+                          </p>
+                        </div>
                       </div>
 
                       {/* ACTIONS */}
-
-                      <div className="flex gap-3 mt-6">
-
+                      <div className="mt-6 pt-3 border-t flex flex-col sm:flex-row gap-2">
                         <button
                           onClick={() =>
-                            handleEdit(event)
+                            navigate(`/admin-dashboard/events/${event.id}/students`)
                           }
-                          className="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-2 rounded-lg"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-3 rounded-xl text-xs text-center transition shadow-sm"
+                        >
+                          Attendance & Students
+                        </button>
+
+                        <button
+                          onClick={() => handleEdit(event)}
+                          className="bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2 px-3 rounded-xl text-xs text-center transition"
                         >
                           Edit
                         </button>
 
                         <button
-  onClick={() => {
-    navigate("/admin-students");
-  }}
-  className="bg-white hover:bg-gray-50 rounded-xl p-6 text-left shadow-md"
->
-  <div className="text-4xl mb-3">
-    🎓
-  </div>
-
-  <h2 className="text-xl font-bold">
-    Students
-  </h2>
-
-  <p className="mt-2 text-gray-600">
-    View registered students and their events.
-  </p>
-</button>
-
+                          onClick={() => handleDelete(event.id)}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 font-semibold py-2 px-3 rounded-xl text-xs text-center transition"
+                        >
+                          Delete
+                        </button>
                       </div>
-
                     </div>
                   );
                 })}

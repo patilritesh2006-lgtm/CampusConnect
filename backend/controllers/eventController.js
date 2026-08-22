@@ -16,9 +16,13 @@ const createEvent = async (req, res) => {
       eventDate,
       collegeId,
       status,
+      category,
+      capacity,
+      registrationDeadline,
+      posterUrl,
     } = req.body;
 
-    if (!title || !venue || (!event_date && !eventDate)) {
+    if (!title || !title.trim() || !venue || !venue.trim() || (!event_date && !eventDate)) {
       return res.status(400).json({
         success: false,
         message: "Title, venue and event date are required.",
@@ -70,17 +74,42 @@ const createEvent = async (req, res) => {
 
     const event = await prisma.event.create({
       data: {
-        title,
-        description: description || "",
-        venue,
+        title: title.trim(),
+        description: description ? description.trim() : "",
+        venue: venue.trim(),
         collegeId: selectedCollegeId,
         eventDate: parsedDate,
         status: status || "UPCOMING",
+        category: category || "Workshop",
+        capacity: capacity ? parseInt(capacity, 10) : 100,
+        registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
+        posterUrl: posterUrl || null,
       },
       include: {
         college: true,
       },
     });
+
+    // Notify all registered students of new event
+    try {
+      const students = await prisma.user.findMany({
+        where: { role: "STUDENT" },
+        select: { id: true },
+      });
+      if (students.length > 0) {
+        await prisma.notification.createMany({
+          data: students.map((s) => ({
+            userId: s.id,
+            title: `New Event: ${event.title}`,
+            message: `A new ${event.category || "campus"} event "${event.title}" has been scheduled for ${new Date(event.eventDate).toLocaleDateString()}.`,
+            type: "INFO",
+            link: "/student-events",
+          })),
+        });
+      }
+    } catch (notifErr) {
+      console.error("EVENT NOTIFICATION ERROR:", notifErr);
+    }
 
     console.log("Event created:", event);
 
@@ -192,6 +221,10 @@ const updateEvent = async (req, res) => {
       event_date,
       eventDate,
       status,
+      category,
+      capacity,
+      registrationDeadline,
+      posterUrl,
     } = req.body;
 
     const existingEvent = await prisma.event.findUnique({
@@ -204,6 +237,20 @@ const updateEvent = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Event not found.",
+      });
+    }
+
+    if (title !== undefined && !title.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Event title cannot be empty.",
+      });
+    }
+
+    if (venue !== undefined && !venue.trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Event venue cannot be empty.",
       });
     }
 
@@ -227,11 +274,15 @@ const updateEvent = async (req, res) => {
         id,
       },
       data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(venue !== undefined && { venue }),
+        ...(title !== undefined && { title: title.trim() }),
+        ...(description !== undefined && { description: description.trim() }),
+        ...(venue !== undefined && { venue: venue.trim() }),
         ...(parsedDate && { eventDate: parsedDate }),
         ...(status !== undefined && { status }),
+        ...(category !== undefined && { category }),
+        ...(capacity !== undefined && { capacity: capacity ? parseInt(capacity, 10) : null }),
+        ...(registrationDeadline !== undefined && { registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null }),
+        ...(posterUrl !== undefined && { posterUrl }),
       },
       include: {
         college: true,
@@ -392,6 +443,27 @@ const getRegisteredStudents = async (req, res) => {
   try {
     const { id } = req.params;
 
+    const event = await prisma.event.findUnique({
+      where: {
+        id,
+      },
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        venue: true,
+        eventDate: true,
+        status: true,
+      },
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found.",
+      });
+    }
+
     const registrations = await prisma.registration.findMany({
       where: {
         eventId: id,
@@ -406,18 +478,32 @@ const getRegisteredStudents = async (req, res) => {
             year: true,
           },
         },
+        certificate: true,
       },
       orderBy: {
         createdAt: "desc",
       },
     });
 
+    const students = registrations.map((registration) => ({
+      id: registration.user.id,
+      registrationId: registration.id,
+      fullName: registration.user.fullName,
+      email: registration.user.email,
+      department: registration.user.department,
+      year: registration.user.year,
+      registrationDate: registration.createdAt,
+      attended: registration.attended,
+      attendanceMarkedAt: registration.attendanceMarkedAt,
+      hasCertificate: Boolean(registration.certificate),
+      certificateCode: registration.certificate?.certificateCode || null,
+    }));
+
     return res.status(200).json({
       success: true,
-      count: registrations.length,
-      students: registrations.map(
-        (registration) => registration.user
-      ),
+      count: students.length,
+      event,
+      students,
     });
   } catch (error) {
     console.error(

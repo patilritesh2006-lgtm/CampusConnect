@@ -10,10 +10,11 @@ const registerForEvent = async (req, res) => {
   try {
     console.log("========== REGISTER EVENT ==========");
 
-    const { user_id, event_id } = req.body;
+    const targetUserId = req.user?.id || req.body.user_id;
+    const { event_id } = req.body;
 
     // Check required fields
-    if (!user_id || !event_id) {
+    if (!targetUserId || !event_id) {
       return res.status(400).json({
         success: false,
         message: "User ID and Event ID are required.",
@@ -26,7 +27,7 @@ const registerForEvent = async (req, res) => {
 
     const user = await prisma.user.findUnique({
       where: {
-        id: user_id,
+        id: targetUserId,
       },
     });
 
@@ -61,7 +62,7 @@ const registerForEvent = async (req, res) => {
     const existing = await prisma.registration.findUnique({
       where: {
         userId_eventId: {
-          userId: user_id,
+          userId: targetUserId,
           eventId: event_id,
         },
       },
@@ -80,8 +81,11 @@ const registerForEvent = async (req, res) => {
 
     const registration = await prisma.registration.create({
       data: {
-        userId: user_id,
+        userId: targetUserId,
         eventId: event_id,
+      },
+      include: {
+        event: true,
       },
     });
 
@@ -123,6 +127,18 @@ const getMyRegistrations = async (req, res) => {
       });
     }
 
+    // Ensure student only accesses their own registrations
+    if (
+      req.user &&
+      req.user.role !== "ADMIN" &&
+      req.user.id !== user_id
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Access denied. You can only view your own registrations.",
+      });
+    }
+
     // ==================================================
     // GET REGISTRATIONS
     // ==================================================
@@ -132,7 +148,12 @@ const getMyRegistrations = async (req, res) => {
         userId: user_id,
       },
       include: {
-        event: true,
+        event: {
+          include: {
+            college: true,
+          },
+        },
+        certificate: true,
       },
       orderBy: {
         createdAt: "desc",
@@ -157,10 +178,70 @@ const getMyRegistrations = async (req, res) => {
 };
 
 // ======================================================
+// CANCEL REGISTRATION
+// DELETE /api/registrations/:registrationId
+// ======================================================
+
+const cancelRegistration = async (req, res) => {
+  try {
+    const { registrationId } = req.params;
+    const userId = req.user.id;
+    const isAdmin = req.user.role === "ADMIN";
+
+    const registration = await prisma.registration.findUnique({
+      where: { id: registrationId },
+      include: { event: true },
+    });
+
+    if (!registration) {
+      return res.status(404).json({
+        success: false,
+        message: "Registration not found.",
+      });
+    }
+
+    if (!isAdmin && registration.userId !== userId) {
+      return res.status(403).json({
+        success: false,
+        message: "You can only cancel your own registration.",
+      });
+    }
+
+    await prisma.registration.delete({
+      where: { id: registrationId },
+    });
+
+    // Send confirmation notification
+    await prisma.notification.create({
+      data: {
+        userId: registration.userId,
+        title: "Registration Cancelled",
+        message: `Your registration for "${registration.event.title}" has been cancelled.`,
+        type: "ALERT",
+        link: "/student-events",
+      },
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: "Registration cancelled successfully.",
+    });
+  } catch (error) {
+    console.error("CANCEL REGISTRATION ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to cancel registration.",
+      error: error.message,
+    });
+  }
+};
+
+// ======================================================
 // EXPORT
 // ======================================================
 
 module.exports = {
   registerForEvent,
   getMyRegistrations,
+  cancelRegistration,
 };
