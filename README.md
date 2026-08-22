@@ -217,7 +217,7 @@ CampusConnect/
 | Role | Email | Password | Access / Capabilities |
 | :--- | :--- | :--- | :--- |
 | **Admin** | `admin@campusconnect.com` | `admin123` | Event management, attendance marking, certificate generation, analytics, notice broadcasts. |
-| **Student** | `ritesh@gmail.com` *(or create new)* | `password123` | Event registration, certificate viewing/printing, notification alerts, profile & badges scoreboard. |
+| **Student** | `ritesh@gmail.com` *(or create new)* | `123456` | Event registration, certificate viewing/printing, notification alerts, profile & badges scoreboard. |
 | **Public Verification** | *(No login required)* | — | Visit `/verify-certificate` to verify any credential code. |
 
 ---
