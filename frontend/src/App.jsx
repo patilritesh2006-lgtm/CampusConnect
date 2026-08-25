@@ -72,6 +72,14 @@ function App() {
           }
         />
         <Route
+          path="/events"
+          element={
+            <ProtectedRoute role="STUDENT">
+              <StudentEvents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/my-registrations"
           element={
             <ProtectedRoute role="STUDENT">
