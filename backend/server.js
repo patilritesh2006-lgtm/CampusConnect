@@ -1,8 +1,12 @@
-const express = require("express");
-const cors = require("cors");
+const path = require("path");
 const dotenv = require("dotenv");
 
+// Explicitly load .env from backend directory
+dotenv.config({ path: path.join(__dirname, ".env") });
 dotenv.config();
+
+const express = require("express");
+const cors = require("cors");
 
 const app = express();
 
