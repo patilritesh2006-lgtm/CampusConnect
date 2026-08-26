@@ -156,7 +156,7 @@ function Login() {
             Back to Home
           </Link>
           <div className="flex justify-center mb-2">
-            <img src="/logo.svg" alt="CampusConnect Logo" className="w-12 h-12 object-contain" />
+            <img src="/logo-icon.png" alt="CampusConnect Logo" className="w-16 h-16 object-contain" />
           </div>
           <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
             Campus<span className="text-blue-600">Connect</span>

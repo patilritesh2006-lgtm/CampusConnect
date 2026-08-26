@@ -10,7 +10,7 @@ function Footer() {
           {/* BRAND COLUMN */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2.5">
-              <img src="/logo.svg" alt="CampusConnect" className="w-10 h-10 object-contain" />
+              <img src="/logo-icon.png" alt="CampusConnect" className="w-10 h-10 object-contain" />
               <span className="text-xl font-extrabold text-white tracking-tight">
                 Campus<span className="text-blue-400">Connect</span>
               </span>

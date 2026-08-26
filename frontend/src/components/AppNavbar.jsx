@@ -50,7 +50,7 @@ export default function AppNavbar({ role }) {
           <div className="flex items-center gap-3">
             <Link to={currentRole === "ADMIN" ? "/admin-dashboard" : "/student-dashboard"} className="flex items-center gap-2 group">
               <img
-                src="/logo.svg"
+                src="/logo-icon.png"
                 alt="CampusConnect Logo"
                 className="w-9 h-9 object-contain group-hover:scale-105 transition"
               />

@@ -78,7 +78,7 @@ function Hero() {
                 {/* Header of Mockup Card */}
                 <div className="flex items-center justify-between pb-4 border-b border-gray-100">
                   <div className="flex items-center gap-2.5">
-                    <img src="/logo.svg" alt="CampusConnect Logo" className="w-8 h-8 object-contain" />
+                    <img src="/logo-icon.png" alt="CampusConnect Logo" className="w-8 h-8 object-contain" />
                     <div>
                       <h4 className="text-sm font-bold text-gray-900">Annual Campus Hackathon 2026</h4>
                       <p className="text-[11px] text-gray-500">Innovation Hub • Main Auditorium</p>
