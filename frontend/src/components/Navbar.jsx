@@ -32,12 +32,14 @@ function Navbar() {
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
         {/* LOGO */}
         <Link to="/" className="flex items-center gap-2.5 group">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md group-hover:scale-105 transition">
-            <GraduationCap size={22} />
-          </div>
+          <img
+            src="/logo.svg"
+            alt="CampusConnect Logo"
+            className="w-10 h-10 object-contain group-hover:scale-105 transition"
+          />
           <div>
-            <span className="text-xl font-extrabold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-              CampusConnect
+            <span className="text-xl font-extrabold text-slate-900 tracking-tight">
+              Campus<span className="text-blue-600">Connect</span>
             </span>
             <span className="hidden sm:inline-block text-[10px] text-gray-400 font-semibold uppercase tracking-wider block -mt-1">
               Event & Activity Hub

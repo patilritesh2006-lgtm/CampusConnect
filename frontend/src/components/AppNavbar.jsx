@@ -48,12 +48,14 @@ export default function AppNavbar({ role }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-3">
-            <Link to={currentRole === "ADMIN" ? "/admin-dashboard" : "/student-dashboard"} className="flex items-center gap-2">
-              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold text-lg shadow-sm">
-                CC
-              </div>
-              <span className="text-xl font-extrabold text-blue-600 tracking-tight hidden sm:inline">
-                CampusConnect
+            <Link to={currentRole === "ADMIN" ? "/admin-dashboard" : "/student-dashboard"} className="flex items-center gap-2 group">
+              <img
+                src="/logo.svg"
+                alt="CampusConnect Logo"
+                className="w-9 h-9 object-contain group-hover:scale-105 transition"
+              />
+              <span className="text-xl font-extrabold text-slate-900 tracking-tight hidden sm:inline">
+                Campus<span className="text-blue-600">Connect</span>
               </span>
             </Link>
             <span

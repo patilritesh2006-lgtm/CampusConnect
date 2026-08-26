@@ -155,7 +155,12 @@ function Login() {
             <ArrowLeft size={16} />
             Back to Home
           </Link>
-          <h1 className="text-3xl font-extrabold text-blue-600 tracking-tight">CampusConnect</h1>
+          <div className="flex justify-center mb-2">
+            <img src="/logo.svg" alt="CampusConnect Logo" className="w-12 h-12 object-contain" />
+          </div>
+          <h1 className="text-3xl font-extrabold text-slate-900 tracking-tight">
+            Campus<span className="text-blue-600">Connect</span>
+          </h1>
           <p className="text-gray-500 text-sm mt-1">
             {mode === "LOGIN" ? "Sign in to manage or explore campus events" : "Create your student account"}
           </p>

@@ -10,11 +10,9 @@ function Footer() {
           {/* BRAND COLUMN */}
           <div className="lg:col-span-2 space-y-4">
             <Link to="/" className="flex items-center gap-2.5">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 flex items-center justify-center text-white shadow-md">
-                <GraduationCap size={22} />
-              </div>
-              <span className="text-xl font-extrabold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
-                CampusConnect
+              <img src="/logo.svg" alt="CampusConnect" className="w-10 h-10 object-contain" />
+              <span className="text-xl font-extrabold text-white tracking-tight">
+                Campus<span className="text-blue-400">Connect</span>
               </span>
             </Link>
             

@@ -42,11 +42,9 @@ export default function CertificateVerify() {
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col justify-between">
       <nav className="bg-white shadow-sm border-b px-6 py-4 flex justify-between items-center">
-        <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold">
-            CC
-          </div>
-          <span className="font-extrabold text-blue-600 text-lg">CampusConnect</span>
+        <Link to="/" className="flex items-center gap-2 group">
+          <img src="/logo.svg" alt="CampusConnect Logo" className="w-8 h-8 object-contain group-hover:scale-105 transition" />
+          <span className="font-extrabold text-slate-900 text-lg">Campus<span className="text-blue-600">Connect</span></span>
         </Link>
         <Link
           to="/login"

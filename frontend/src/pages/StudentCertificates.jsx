@@ -169,6 +169,9 @@ export default function StudentCertificates() {
 
             <div className="p-8 md:p-12 bg-[#fdfbf7] border-8 border-[#d4af37] m-4 md:m-6 rounded-2xl relative text-center shadow-inner">
               <div className="mb-6">
+                <div className="flex justify-center mb-3">
+                  <img src="/logo.svg" alt="CampusConnect Logo" className="w-16 h-16 object-contain" />
+                </div>
                 <div className="text-sm font-bold tracking-widest text-[#996515] uppercase">
                   {selectedCert.event?.college?.name || "CampusConnect College"}
                 </div>
