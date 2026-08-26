@@ -20,21 +20,26 @@ model College {
 }
 
 model User {
-  id            String         @id @default(uuid())
-  collegeId     String?        @map("college_id")
-  fullName      String         @map("full_name")
-  email         String         @unique
-  password      String
-  profilePhoto  String?        @map("profile_photo")
-  department    String?
-  year          Int?
-  isVerified    Boolean        @default(false) @map("is_verified")
-  createdAt     DateTime       @default(now()) @map("created_at")
-  role          UserRole       @default(STUDENT)
-  registrations Registration[]
-  certificates  Certificate[]
-  notifications Notification[]
-  college       College?       @relation(fields: [collegeId], references: [id])
+  id                   String         @id @default(uuid())
+  collegeId            String?        @map("college_id")
+  fullName             String         @map("full_name")
+  email                String         @unique
+  password             String
+  profilePhoto         String?        @map("profile_photo")
+  department           String?
+  year                 Int?
+  isVerified           Boolean        @default(false) @map("is_verified")
+  failedLoginAttempts  Int            @default(0) @map("failed_login_attempts")
+  lockedUntil          DateTime?      @map("locked_until")
+  tokenVersion         Int            @default(1) @map("token_version")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  role                 UserRole       @default(STUDENT)
+  registrations        Registration[]
+  certificates         Certificate[]
+  notifications        Notification[]
+  refreshTokens        RefreshToken[]
+  authTokens           AuthToken[]
+  college              College?       @relation(fields: [collegeId], references: [id])
 
   @@map("users")
 }
@@ -114,6 +119,40 @@ model Announcement {
   updatedAt DateTime @updatedAt @map("updated_at")
 
   @@map("announcements")
+}
+
+model RefreshToken {
+  id         String   @id @default(uuid())
+  tokenHash  String   @unique @map("token_hash")
+  userId     String   @map("user_id")
+  revoked    Boolean  @default(false)
+  expiresAt  DateTime @map("expires_at")
+  ipAddress  String?  @map("ip_address")
+  userAgent  String?  @map("user_agent")
+  createdAt  DateTime @default(now()) @map("created_at")
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+model AuthToken {
+  id        String        @id @default(uuid())
+  tokenHash String        @unique @map("token_hash")
+  userId    String        @map("user_id")
+  type      AuthTokenType
+  expiresAt DateTime      @map("expires_at")
+  usedAt    DateTime?     @map("used_at")
+  createdAt DateTime      @default(now()) @map("created_at")
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type])
+  @@map("auth_tokens")
+}
+
+enum AuthTokenType {
+  EMAIL_VERIFICATION
+  PASSWORD_RESET
 }
 
 enum UserRole {
