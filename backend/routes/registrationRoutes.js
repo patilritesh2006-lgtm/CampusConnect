@@ -13,6 +13,9 @@ const {
   requireStudent,
 } = require("../middleware/authMiddleware");
 
+const { validate } = require("../middleware/validate");
+const { createRegistrationSchema } = require("../validators/registrationSchemas");
+
 // ======================================================
 // REGISTER FOR EVENT
 // POST /api/registrations
@@ -23,6 +26,7 @@ router.post(
   "/",
   authenticateToken,
   requireStudent,
+  validate(createRegistrationSchema),
   registerForEvent
 );
 

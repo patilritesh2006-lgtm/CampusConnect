@@ -19,6 +19,9 @@ const {
   requireStudent,
 } = require("../middleware/authMiddleware");
 
+const { validate } = require("../middleware/validate");
+const { createEventSchema, updateEventSchema } = require("../validators/eventSchemas");
+
 // ======================================================
 // ADMIN DASHBOARD STATS
 // GET /api/events/stats
@@ -53,6 +56,7 @@ router.post(
   "/",
   authenticateToken,
   requireAdmin,
+  validate(createEventSchema),
   createEvent
 );
 
@@ -104,6 +108,7 @@ router.put(
   "/:id",
   authenticateToken,
   requireAdmin,
+  validate(updateEventSchema),
   updateEvent
 );
 
