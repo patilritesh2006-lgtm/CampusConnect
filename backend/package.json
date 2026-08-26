@@ -8,9 +8,13 @@
     "start": "node server.js",
     "test": "node tests/auth.test.js",
     "test:master": "node tests/master.test.js",
+    "seed": "node prisma/seed.js",
     "prisma": "prisma",
     "generate": "prisma generate",
     "migrate": "prisma migrate dev"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",
