@@ -3,10 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#2563eb" />
+    <meta name="description" content="CampusConnect — Unified College Event Management, Live Attendance Tracking, Verified Digital Certificates, and Gamification Achievements." />
+    
+    <!-- iOS PWA Support -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CampusConnect" />
+    
+    <!-- OpenGraph Social Sharing -->
+    <meta property="og:title" content="CampusConnect — College Event & Activity Platform" />
+    <meta property="og:description" content="Discover hackathons, live attendance roll-call, digital certificates with QR verification, and student badges." />
+    <meta property="og:type" content="website" />
+
+    <title>CampusConnect — College Event & Student Activity Platform</title>
   </head>
-  <body>
+  <body class="bg-gray-50 text-gray-900 antialiased selection:bg-blue-500 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>
