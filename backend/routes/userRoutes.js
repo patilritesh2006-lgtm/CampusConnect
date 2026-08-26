@@ -1,10 +1,21 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
-const userController = require("../controllers/userController");
+
+const {
+  getPublicPortfolio,
+  getLeaderboard,
+  updateProfile,
+} = require("../controllers/userController");
+
 const { authenticateToken } = require("../middleware/authMiddleware");
 
-router.get("/profile", authenticateToken, userController.getProfile);
-router.put("/profile", authenticateToken, userController.updateProfile);
-router.put("/change-password", authenticateToken, userController.changePassword);
+// Public Student Digital Portfolio
+router.get("/portfolio/:username", getPublicPortfolio);
+
+// Gamification Leaderboard (Protected)
+router.get("/leaderboard", authenticateToken, getLeaderboard);
+
+// Update Profile & Portfolio Settings (Protected)
+router.put("/profile", authenticateToken, updateProfile);
 
 module.exports = router;

@@ -1,8 +1,15 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
-const analyticsController = require("../controllers/analyticsController");
-const { authenticateToken, requireAdmin } = require("../middleware/authMiddleware");
 
-router.get("/admin", authenticateToken, requireAdmin, analyticsController.getAdminAnalytics);
+const { getAdminAnalytics } = require("../controllers/analyticsController");
+const { authenticateToken, requireRole } = require("../middleware/authMiddleware");
+
+// Admin / Faculty / SuperAdmin Analytics
+router.get(
+  "/admin-overview",
+  authenticateToken,
+  requireRole("SUPER_ADMIN", "ADMIN", "FACULTY"),
+  getAdminAnalytics
+);
 
 module.exports = router;

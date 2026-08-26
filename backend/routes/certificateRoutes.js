@@ -1,16 +1,52 @@
-const express = require("express");
+﻿const express = require("express");
 const router = express.Router();
-const certificateController = require("../controllers/certificateController");
-const { authenticateToken, requireAdmin, requireStudent } = require("../middleware/authMiddleware");
 
-// Public verification
-router.get("/verify/:code", certificateController.verifyCertificate);
+const {
+  issueCertificate,
+  bulkIssueCertificates,
+  getMyCertificates,
+  verifyCertificate,
+  getAllCertificates,
+} = require("../controllers/certificateController");
 
-// Student
-router.get("/my", authenticateToken, requireStudent, certificateController.getMyCertificates);
+const {
+  authenticateToken,
+  requireRole,
+} = require("../middleware/authMiddleware");
 
-// Admin
-router.get("/all", authenticateToken, requireAdmin, certificateController.getAllCertificates);
-router.post("/generate", authenticateToken, requireAdmin, certificateController.generateCertificate);
+// Public Certificate Verification (No login required)
+router.get("/verify/:code", verifyCertificate);
+
+// Student Certificates
+router.get(
+  "/my-certificates",
+  authenticateToken,
+  requireRole("STUDENT"),
+  getMyCertificates
+);
+
+// Admin / Faculty / Coordinator - Issue single certificate
+router.post(
+  "/issue",
+  authenticateToken,
+  requireRole("SUPER_ADMIN", "ADMIN", "FACULTY", "EVENT_COORDINATOR"),
+  issueCertificate
+);
+
+// Admin / Faculty / Coordinator - Bulk issue certificates
+router.post(
+  "/bulk-issue",
+  authenticateToken,
+  requireRole("SUPER_ADMIN", "ADMIN", "FACULTY", "EVENT_COORDINATOR"),
+  bulkIssueCertificates
+);
+
+// Admin - View all certificates
+router.get(
+  "/all",
+  authenticateToken,
+  requireRole("SUPER_ADMIN", "ADMIN"),
+  getAllCertificates
+);
 
 module.exports = router;

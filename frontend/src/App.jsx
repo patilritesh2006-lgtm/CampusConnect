@@ -10,6 +10,9 @@ import StudentCertificates from "./pages/StudentCertificates";
 import StudentProfile from "./pages/StudentProfile";
 import CalendarView from "./pages/CalendarView";
 import Announcements from "./pages/Announcements";
+import StudentPortfolio from "./pages/StudentPortfolio";
+import Leaderboard from "./pages/Leaderboard";
+import AIAssistant from "./components/AIAssistant";
 import CertificateVerify from "./pages/CertificateVerify";
 
 import AdminDashboard from "./pages/AdminDashboard";
@@ -29,6 +32,16 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify-certificate" element={<CertificateVerify />} />
         <Route path="/verify-certificate/:certificateCode" element={<CertificateVerify />} />
+        <Route path="/portfolio/:username" element={<StudentPortfolio />} />
+
+        <Route
+          path="/leaderboard"
+          element={
+            <ProtectedRoute>
+              <Leaderboard />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/calendar"
@@ -139,6 +152,7 @@ function App() {
 
         <Route path="*" element={<NotFound />} />
       </Routes>
+      <AIAssistant />
     </BrowserRouter>
   );
 }

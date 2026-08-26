@@ -1,4 +1,4 @@
-﻿const path = require("path");
+const path = require("path");
 const dotenv = require("dotenv");
 
 // Explicitly load .env from backend directory
@@ -108,6 +108,10 @@ const notificationRoutes = require("./routes/notificationRoutes");
 const announcementRoutes = require("./routes/announcementRoutes");
 const userRoutes = require("./routes/userRoutes");
 const analyticsRoutes = require("./routes/analyticsRoutes");
+const aiRoutes = require("./routes/aiRoutes");
+const feedbackRoutes = require("./routes/feedbackRoutes");
+const mediaRoutes = require("./routes/mediaRoutes");
+const { initScheduler } = require("./services/scheduler");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/events", eventRoutes);
@@ -119,6 +123,9 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/announcements", announcementRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/analytics", analyticsRoutes);
+app.use("/api/ai", aiRoutes);
+app.use("/api/feedback", feedbackRoutes);
+app.use("/api/media", mediaRoutes);
 
 // ======================================================
 // CENTRALIZED ERROR HANDLER
@@ -134,6 +141,8 @@ const PORT = process.env.PORT || 5000;
 
 const server = app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 CampusConnect API v2.0 running securely on port ${PORT}`);
+  // Initialize cron scheduler
+  initScheduler();
 });
 
 // Graceful Shutdown

@@ -1,127 +1,247 @@
-const prisma = require("../config/prisma");
-const bcrypt = require("bcrypt");
+﻿const prisma = require("../config/prisma");
 
-// Get profile + computed achievements
-const getProfile = async (req, res) => {
+// ======================================================
+// GET PUBLIC STUDENT DIGITAL PORTFOLIO (No sensitive PII)
+// ======================================================
+const getPublicPortfolio = async (req, res, next) => {
   try {
-    const userId = req.user.id;
+    const { username } = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
+    if (!username) {
+      return res.status(400).json({
+        success: false,
+        message: "Username is required.",
+      });
+    }
+
+    const student = await prisma.user.findFirst({
+      where: {
+        username: { equals: username.trim(), mode: "insensitive" },
+        role: "STUDENT",
+      },
       select: {
         id: true,
         fullName: true,
-        email: true,
         department: true,
         year: true,
-        role: true,
+        bio: true,
+        skills: true,
+        xp: true,
+        level: true,
+        githubUrl: true,
+        linkedinUrl: true,
+        websiteUrl: true,
+        portfolioPublic: true,
         createdAt: true,
-        registrations: {
-          include: {
-            event: true,
-            certificate: true,
-          },
-        },
         certificates: {
-          include: {
-            event: true,
+          select: {
+            id: true,
+            certificateCode: true,
+            issueDate: true,
+            event: {
+              select: {
+                id: true,
+                title: true,
+                category: true,
+                eventDate: true,
+              },
+            },
           },
+          orderBy: { issueDate: "desc" },
+        },
+        registrations: {
+          where: { attended: true },
+          select: {
+            id: true,
+            attendanceMarkedAt: true,
+            event: {
+              select: {
+                id: true,
+                title: true,
+                category: true,
+                eventDate: true,
+              },
+            },
+          },
+          orderBy: { createdAt: "desc" },
         },
       },
     });
 
-    if (!user) {
+    if (!student) {
       return res.status(404).json({
         success: false,
-        message: "User not found.",
+        message: "Student portfolio not found.",
       });
     }
 
-    const totalRegistered = user.registrations.length;
-    const totalAttended = user.registrations.filter((r) => r.attended).length;
-    const totalCertificates = user.certificates.length;
-    const attendanceRate = totalRegistered > 0 ? Math.round((totalAttended / totalRegistered) * 100) : 0;
+    if (!student.portfolioPublic) {
+      return res.status(403).json({
+        success: false,
+        message: "This student's portfolio is set to private.",
+      });
+    }
 
-    // Badges calculation
+    // Compute Badges
+    const totalAttended = student.registrations.length;
+    const totalCertificates = student.certificates.length;
+
     const badges = [
       {
-        id: "active_participant",
-        title: "Active Participant",
-        description: "Registered for at least 1 campus event",
+        id: "active-participant",
+        name: "Active Participant",
+        description: "Registered & attended campus activities",
+        unlocked: totalAttended >= 1,
         icon: "🎯",
-        unlocked: totalRegistered >= 1,
       },
       {
-        id: "event_explorer",
-        title: "Event Explorer",
-        description: "Registered for 3 or more campus events",
-        icon: "🚀",
-        unlocked: totalRegistered >= 3,
-      },
-      {
-        id: "event_champion",
-        title: "Event Champion",
-        description: "Attended 3 or more campus events",
-        icon: "🥇",
+        id: "event-explorer",
+        name: "Event Explorer",
+        description: "Participated in 3+ college events",
         unlocked: totalAttended >= 3,
+        icon: "🚀",
       },
       {
-        id: "certified_scholar",
-        title: "Certified Scholar",
-        description: "Earned 1 or more verified certificates",
-        icon: "📜",
+        id: "event-champion",
+        name: "Campus Champion",
+        description: "Attended 5+ campus events",
+        unlocked: totalAttended >= 5,
+        icon: "🥇",
+      },
+      {
+        id: "certified-scholar",
+        name: "Certified Scholar",
+        description: "Earned official verified certificates",
         unlocked: totalCertificates >= 1,
+        icon: "📜",
       },
       {
-        id: "punctual_attendee",
-        title: "Punctual Attendee",
-        description: "Maintained a 100% attendance rate",
+        id: "master-achiever",
+        name: "Master Achiever",
+        description: "Reached Level 5+ in CampusConnect",
+        unlocked: student.level >= 5,
         icon: "⭐",
-        unlocked: totalRegistered >= 2 && attendanceRate === 100,
       },
     ];
 
     return res.status(200).json({
       success: true,
-      profile: {
-        id: user.id,
-        fullName: user.fullName,
-        email: user.email,
-        department: user.department,
-        year: user.year,
-        role: user.role,
-        joinedAt: user.createdAt,
-      },
-      achievements: {
-        totalRegistered,
-        totalAttended,
-        totalCertificates,
-        attendanceRate,
+      portfolio: {
+        fullName: student.fullName,
+        department: student.department || "Student",
+        year: student.year,
+        bio: student.bio || "Active CampusConnect student community member.",
+        skills: student.skills || [],
+        xp: student.xp,
+        level: student.level,
+        githubUrl: student.githubUrl,
+        linkedinUrl: student.linkedinUrl,
+        websiteUrl: student.websiteUrl,
+        memberSince: student.createdAt,
+        totalEventsAttended: totalAttended,
+        totalCertificatesEarned: totalCertificates,
+        attendedEvents: student.registrations.map((r) => r.event),
+        certificates: student.certificates,
         badges,
       },
     });
   } catch (error) {
-    console.error("GET PROFILE ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch user profile.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
-// Update profile details
-const updateProfile = async (req, res) => {
+// ======================================================
+// GET CAMPUS XP LEADERBOARD (Phase 12 Gamification)
+// ======================================================
+const getLeaderboard = async (req, res, next) => {
+  try {
+    const topStudents = await prisma.user.findMany({
+      where: { role: "STUDENT" },
+      select: {
+        id: true,
+        fullName: true,
+        department: true,
+        xp: true,
+        level: true,
+        username: true,
+        registrations: { where: { attended: true } },
+        certificates: true,
+      },
+      orderBy: [{ xp: "desc" }, { level: "desc" }],
+      take: 20,
+    });
+
+    const leaderboard = topStudents.map((s, index) => ({
+      rank: index + 1,
+      id: s.id,
+      fullName: s.fullName,
+      username: s.username,
+      department: s.department || "General",
+      xp: s.xp,
+      level: s.level,
+      attendedCount: s.registrations.length,
+      certificatesCount: s.certificates.length,
+    }));
+
+    return res.status(200).json({
+      success: true,
+      leaderboard,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================================================
+// UPDATE STUDENT PROFILE & PORTFOLIO SETTINGS
+// ======================================================
+const updateProfile = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { fullName, department, year } = req.body;
+    const {
+      fullName,
+      department,
+      year,
+      username,
+      bio,
+      skills,
+      githubUrl,
+      linkedinUrl,
+      websiteUrl,
+      portfolioPublic,
+    } = req.body;
+
+    // If username is provided, check uniqueness
+    if (username) {
+      const cleanUsername = username.trim().toLowerCase();
+      const existingUser = await prisma.user.findFirst({
+        where: {
+          username: cleanUsername,
+          NOT: { id: userId },
+        },
+      });
+
+      if (existingUser) {
+        return res.status(409).json({
+          success: false,
+          message: "Username is already taken. Please choose another.",
+        });
+      }
+    }
 
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         ...(fullName && { fullName: fullName.trim() }),
-        ...(department !== undefined && { department: department.trim() }),
+        ...(department !== undefined && { department: department?.trim() || null }),
         ...(year !== undefined && { year: year ? parseInt(year, 10) : null }),
+        ...(username && { username: username.trim().toLowerCase() }),
+        ...(bio !== undefined && { bio: bio?.trim() || null }),
+        ...(skills !== undefined && { skills: Array.isArray(skills) ? skills : [] }),
+        ...(githubUrl !== undefined && { githubUrl: githubUrl?.trim() || null }),
+        ...(linkedinUrl !== undefined && { linkedinUrl: linkedinUrl?.trim() || null }),
+        ...(websiteUrl !== undefined && { websiteUrl: websiteUrl?.trim() || null }),
+        ...(portfolioPublic !== undefined && { portfolioPublic: Boolean(portfolioPublic) }),
       },
       select: {
         id: true,
@@ -129,6 +249,15 @@ const updateProfile = async (req, res) => {
         email: true,
         department: true,
         year: true,
+        username: true,
+        bio: true,
+        skills: true,
+        xp: true,
+        level: true,
+        portfolioPublic: true,
+        githubUrl: true,
+        linkedinUrl: true,
+        websiteUrl: true,
         role: true,
       },
     });
@@ -139,77 +268,12 @@ const updateProfile = async (req, res) => {
       user: updated,
     });
   } catch (error) {
-    console.error("UPDATE PROFILE ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to update profile.",
-      error: error.message,
-    });
-  }
-};
-
-// Change password
-const changePassword = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { currentPassword, newPassword } = req.body;
-
-    if (!currentPassword || !newPassword) {
-      return res.status(400).json({
-        success: false,
-        message: "Current password and new password are required.",
-      });
-    }
-
-    if (newPassword.length < 6) {
-      return res.status(400).json({
-        success: false,
-        message: "New password must be at least 6 characters.",
-      });
-    }
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-    });
-
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found.",
-      });
-    }
-
-    const isMatch = await bcrypt.compare(currentPassword, user.password);
-    if (!isMatch) {
-      return res.status(401).json({
-        success: false,
-        message: "Incorrect current password.",
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(newPassword, 10);
-
-    await prisma.user.update({
-      where: { id: userId },
-      data: { password: hashedPassword },
-    });
-
-    return res.status(200).json({
-      success: true,
-      message: "Password changed successfully.",
-    });
-  } catch (error) {
-    console.error("CHANGE PASSWORD ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to change password.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 module.exports = {
-  getProfile,
+  getPublicPortfolio,
+  getLeaderboard,
   updateProfile,
-  changePassword,
 };

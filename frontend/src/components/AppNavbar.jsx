@@ -27,6 +27,7 @@ export default function AppNavbar({ role }) {
     { name: "Events", path: "/student-events" },
     { name: "My Registrations", path: "/my-registrations" },
     { name: "Certificates", path: "/student-certificates" },
+    { name: "Leaderboard", path: "/leaderboard" },
     { name: "Calendar", path: "/calendar" },
     { name: "Announcements", path: "/announcements" },
   ];
@@ -36,6 +37,7 @@ export default function AppNavbar({ role }) {
     { name: "Students", path: "/admin-students" },
     { name: "Certificates", path: "/admin-certificates" },
     { name: "Analytics", path: "/admin-analytics" },
+    { name: "Leaderboard", path: "/leaderboard" },
     { name: "Announcements", path: "/announcements" },
     { name: "Calendar", path: "/calendar" },
   ];

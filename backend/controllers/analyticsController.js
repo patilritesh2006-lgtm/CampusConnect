@@ -1,100 +1,155 @@
-const prisma = require("../config/prisma");
+﻿const prisma = require("../config/prisma");
 
-const getAdminAnalytics = async (req, res) => {
+/**
+ * Compute the Official CampusConnect Student Engagement Score (0 - 100)
+ * Weighted Formula:
+ * - Attendance Rate (40%)
+ * - Completed Events Attended (30%)
+ * - Verified Certificates Earned (20%)
+ * - Gamification XP Level (10%)
+ */
+const calculateEngagementScore = (stats) => {
+  const { totalRegistered, totalAttended, totalCertificates, xp } = stats;
+
+  if (totalRegistered === 0) return 0;
+
+  const attendanceRate = (totalAttended / totalRegistered) * 40;
+  const attendanceVolume = Math.min(totalAttended * 6, 30);
+  const certificateVolume = Math.min(totalCertificates * 10, 20);
+  const xpComponent = Math.min(Math.floor(xp / 50), 10);
+
+  const rawScore = attendanceRate + attendanceVolume + certificateVolume + xpComponent;
+  return Math.min(100, Math.round(rawScore));
+};
+
+// ======================================================
+// GET COMPREHENSIVE ADMIN ANALYTICS
+// ======================================================
+const getAdminAnalytics = async (req, res, next) => {
   try {
     const [
       totalEvents,
       totalStudents,
       totalRegistrations,
+      attendedRegistrations,
       totalCertificates,
       events,
       students,
-      registrations,
     ] = await Promise.all([
       prisma.event.count(),
       prisma.user.count({ where: { role: "STUDENT" } }),
       prisma.registration.count(),
+      prisma.registration.count({ where: { attended: true } }),
       prisma.certificate.count(),
       prisma.event.findMany({
         include: {
           registrations: true,
           certificates: true,
         },
+        orderBy: { eventDate: "desc" },
       }),
       prisma.user.findMany({
         where: { role: "STUDENT" },
-        select: { department: true, year: true },
-      }),
-      prisma.registration.findMany({
-        select: { attended: true, createdAt: true },
+        include: {
+          registrations: true,
+          certificates: true,
+        },
       }),
     ]);
 
-    const totalAttended = registrations.filter((r) => r.attended).length;
-    const overallAttendanceRate = totalRegistrations > 0 ? Math.round((totalAttended / totalRegistrations) * 100) : 0;
+    const attendanceRate =
+      totalRegistrations > 0
+        ? Math.round((attendedRegistrations / totalRegistrations) * 100)
+        : 0;
 
-    // Department Breakdown
-    const departmentCounts = {};
+    // 1. Department Breakdown
+    const deptMap = {};
     students.forEach((s) => {
-      const dept = s.department || "Unassigned";
-      departmentCounts[dept] = (departmentCounts[dept] || 0) + 1;
+      const dept = s.department || "General / Unassigned";
+      if (!deptMap[dept]) {
+        deptMap[dept] = { students: 0, registrations: 0, attended: 0 };
+      }
+      deptMap[dept].students++;
+      deptMap[dept].registrations += s.registrations.length;
+      deptMap[dept].attended += s.registrations.filter((r) => r.attended).length;
     });
 
-    const departmentStats = Object.keys(departmentCounts).map((dept) => ({
+    const departmentStats = Object.keys(deptMap).map((dept) => ({
       department: dept,
-      studentCount: departmentCounts[dept],
-      percentage: totalStudents > 0 ? Math.round((departmentCounts[dept] / totalStudents) * 100) : 0,
+      ...deptMap[dept],
+      attendanceRate:
+        deptMap[dept].registrations > 0
+          ? Math.round((deptMap[dept].attended / deptMap[dept].registrations) * 100)
+          : 0,
     }));
 
-    // Top Popular Events
-    const popularEvents = events
+    // 2. Top Events Leaderboard
+    const topEvents = events
       .map((e) => ({
         id: e.id,
         title: e.title,
-        venue: e.venue,
+        category: e.category,
         eventDate: e.eventDate,
-        status: e.status,
-        registrationCount: e.registrations.length,
+        registrationsCount: e.registrations.length,
         attendedCount: e.registrations.filter((r) => r.attended).length,
-        certificateCount: e.certificates.length,
+        certificatesCount: e.certificates.length,
+        fillRate:
+          e.capacity && e.capacity > 0
+            ? Math.round((e.registrations.length / e.capacity) * 100)
+            : 100,
       }))
-      .sort((a, b) => b.registrationCount - a.registrationCount)
+      .sort((a, b) => b.registrationsCount - a.registrationsCount)
       .slice(0, 5);
 
-    // Event Status Distribution
-    const statusCounts = {
-      UPCOMING: events.filter((e) => e.status === "UPCOMING").length,
-      ONGOING: events.filter((e) => e.status === "ONGOING").length,
-      COMPLETED: events.filter((e) => e.status === "COMPLETED").length,
-      CANCELLED: events.filter((e) => e.status === "CANCELLED").length,
-    };
+    // 3. Overall Student Engagement Score Average
+    const studentScores = students.map((s) => {
+      const totalReg = s.registrations.length;
+      const totalAtt = s.registrations.filter((r) => r.attended).length;
+      const totalCert = s.certificates.length;
+      return calculateEngagementScore({
+        totalRegistered: totalReg,
+        totalAttended: totalAtt,
+        totalCertificates: totalCert,
+        xp: s.xp || 0,
+      });
+    });
+
+    const avgEngagementScore =
+      studentScores.length > 0
+        ? Math.round(
+            studentScores.reduce((acc, val) => acc + val, 0) /
+              studentScores.length
+          )
+        : 0;
+
+    // 4. Category Popularity
+    const categoryMap = {};
+    events.forEach((e) => {
+      const cat = e.category || "General";
+      categoryMap[cat] = (categoryMap[cat] || 0) + e.registrations.length;
+    });
 
     return res.status(200).json({
       success: true,
-      analytics: {
-        summary: {
-          totalEvents,
-          totalStudents,
-          totalRegistrations,
-          totalAttended,
-          totalCertificates,
-          overallAttendanceRate,
-        },
-        departmentStats,
-        popularEvents,
-        statusCounts,
+      summary: {
+        totalEvents,
+        totalStudents,
+        totalRegistrations,
+        attendedRegistrations,
+        totalCertificates,
+        overallAttendanceRate: attendanceRate,
+        avgEngagementScore,
       },
+      departmentStats,
+      topEvents,
+      categoryStats: categoryMap,
     });
   } catch (error) {
-    console.error("GET ADMIN ANALYTICS ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate analytics.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
 module.exports = {
   getAdminAnalytics,
+  calculateEngagementScore,
 };

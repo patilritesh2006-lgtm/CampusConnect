@@ -34,33 +34,46 @@ model User {
   tokenVersion         Int            @default(1) @map("token_version")
   createdAt            DateTime       @default(now()) @map("created_at")
   role                 UserRole       @default(STUDENT)
+  username             String?        @unique
+  bio                  String?
+  skills               String[]       @default([])
+  xp                   Int            @default(0)
+  level                Int            @default(1)
+  portfolioPublic      Boolean        @default(true) @map("portfolio_public")
+  githubUrl            String?        @map("github_url")
+  linkedinUrl          String?        @map("linkedin_url")
+  websiteUrl           String?        @map("website_url")
   registrations        Registration[]
   certificates         Certificate[]
   notifications        Notification[]
   refreshTokens        RefreshToken[]
   authTokens           AuthToken[]
+  feedbacks            EventFeedback[]
   college              College?       @relation(fields: [collegeId], references: [id])
 
   @@map("users")
 }
 
 model Event {
-  id                   String         @id @default(uuid())
+  id                   String          @id @default(uuid())
   title                String
   description          String
   venue                String
-  category             String?        @default("Workshop")
-  capacity             Int?           @default(100)
-  registrationDeadline DateTime?      @map("registration_deadline")
-  posterUrl            String?        @map("poster_url")
+  category             String?         @default("Workshop")
+  capacity             Int?            @default(100)
+  registrationDeadline DateTime?       @map("registration_deadline")
+  posterUrl            String?         @map("poster_url")
   collegeId            String
-  createdAt            DateTime       @default(now())
+  coordinatorId        String?         @map("coordinator_id")
+  createdAt            DateTime        @default(now())
   eventDate            DateTime
-  status               EventStatus    @default(UPCOMING)
-  updatedAt            DateTime       @updatedAt
-  college              College        @relation(fields: [collegeId], references: [id])
+  status               EventStatus     @default(UPCOMING)
+  updatedAt            DateTime        @updatedAt
+  college              College         @relation(fields: [collegeId], references: [id])
   registrations        Registration[]
   certificates         Certificate[]
+  feedbacks            EventFeedback[]
+  media                EventMedia[]
 
   @@map("events")
 }
@@ -70,6 +83,8 @@ model Registration {
   createdAt          DateTime     @default(now())
   attended           Boolean      @default(false)
   attendanceMarkedAt DateTime?    @map("attendance_marked_at")
+  checkinMethod      String?      @default("MANUAL") @map("checkin_method") // QR_SCAN, MANUAL, BULK
+  deviceInfo         String?      @map("device_info")
   eventId            String
   userId             String
   event              Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
@@ -150,14 +165,50 @@ model AuthToken {
   @@map("auth_tokens")
 }
 
+model EventFeedback {
+  id              String   @id @default(uuid())
+  eventId         String   @map("event_id")
+  userId          String   @map("user_id")
+  rating          Int      // 1 to 5 stars
+  experience      String?  // EXCELLENT, GOOD, AVERAGE, POOR
+  organization    Int?     // 1 to 5
+  speakerQuality  Int?     @map("speaker_quality") // 1 to 5
+  wouldRecommend  Boolean  @default(true) @map("would_recommend")
+  comments        String?
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, eventId])
+  @@map("event_feedbacks")
+}
+
+model EventMedia {
+  id         String   @id @default(uuid())
+  eventId    String   @map("event_id")
+  mediaUrl   String   @map("media_url")
+  mediaType  String   @default("IMAGE") @map("media_type") // IMAGE, VIDEO
+  caption    String?
+  uploadedBy String?  @map("uploaded_by")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@map("event_media")
+}
+
 enum AuthTokenType {
   EMAIL_VERIFICATION
   PASSWORD_RESET
 }
 
 enum UserRole {
-  STUDENT
+  SUPER_ADMIN
   ADMIN
+  FACULTY
+  EVENT_COORDINATOR
+  STUDENT
 }
 
 enum EventStatus {

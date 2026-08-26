@@ -1,203 +1,247 @@
-const prisma = require("../config/prisma");
+﻿const prisma = require("../config/prisma");
 const crypto = require("crypto");
 
-// Generate unique certificate code: CC-2026-<EVENT_INITIALS>-<HEX>
-const generateUniqueCode = (eventTitle) => {
-  const initials = (eventTitle || "EV")
-    .split(" ")
-    .map((w) => w[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 4);
-  const randomHex = crypto.randomBytes(3).toString("hex").toUpperCase();
+/**
+ * Generate a unique collision-free cryptographic Certificate Code
+ * Format: CC-YYYY-EVENTCODE-RANDOMHEX
+ */
+const generateCertificateCode = (eventTitle) => {
   const year = new Date().getFullYear();
-  return "CC-" + year + "-" + initials + "-" + randomHex;
+  const cleanTitle = eventTitle
+    .replace(/[^a-zA-Z0-9]/g, "")
+    .substring(0, 4)
+    .toUpperCase();
+  const randomHex = crypto.randomBytes(3).toString("hex").toUpperCase();
+  return `CC-${year}-${cleanTitle}-${randomHex}`;
 };
 
-// Generate certificate for a student
-const generateCertificate = async (req, res) => {
+// ======================================================
+// ISSUE CERTIFICATE FOR ATTENDED STUDENT
+// ======================================================
+const issueCertificate = async (req, res, next) => {
   try {
-    const { eventId, userId } = req.body;
+    const { registrationId } = req.body;
 
-    if (!eventId || !userId) {
+    if (!registrationId) {
       return res.status(400).json({
         success: false,
-        message: "eventId and userId are required.",
+        message: "Registration ID is required.",
       });
     }
 
-    const registration = await prisma.registration.findUnique({
-      where: {
-        userId_eventId: {
-          userId,
-          eventId,
-        },
-      },
+    const reg = await prisma.registration.findUnique({
+      where: { id: registrationId },
       include: {
-        event: true,
         user: true,
+        event: { include: { college: true } },
         certificate: true,
       },
     });
 
-    if (!registration) {
+    if (!reg) {
       return res.status(404).json({
         success: false,
-        message: "Registration not found.",
+        message: "Registration record not found.",
       });
     }
 
-    if (registration.certificate) {
-      return res.status(200).json({
-        success: true,
-        message: "Certificate already issued.",
-        certificate: registration.certificate,
+    if (!reg.attended) {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot issue certificate. Student has not attended this event.",
       });
     }
 
-    const code = generateUniqueCode(registration.event.title);
+    if (reg.certificate) {
+      return res.status(400).json({
+        success: false,
+        message: "Certificate has already been issued for this registration.",
+        certificate: reg.certificate,
+      });
+    }
 
-    const certificate = await prisma.certificate.create({
-      data: {
-        certificateCode: code,
-        userId,
-        eventId,
-        registrationId: registration.id,
-      },
-      include: {
-        event: true,
-        user: true,
-      },
-    });
+    const certificateCode = generateCertificateCode(reg.event.title);
 
-    // Notify student
-    await prisma.notification.create({
-      data: {
-        userId,
-        title: "Certificate Issued! 🏆",
-        message: "Your certificate for " + registration.event.title + " is now available to download.",
-        type: "CERTIFICATE",
-        link: "/student-certificates",
-      },
+    const certificate = await prisma.$transaction(async (tx) => {
+      const cert = await tx.certificate.create({
+        data: {
+          certificateCode,
+          userId: reg.userId,
+          eventId: reg.eventId,
+          registrationId: reg.id,
+          issueDate: new Date(),
+        },
+        include: {
+          user: true,
+          event: { include: { college: true } },
+        },
+      });
+
+      // Award +100 XP for earning a certificate
+      await tx.user.update({
+        where: { id: reg.userId },
+        data: { xp: { increment: 100 } },
+      });
+
+      // Trigger notification
+      await tx.notification.create({
+        data: {
+          userId: reg.userId,
+          title: `Certificate Issued: ${reg.event.title}`,
+          message: `Congratulations! Your certificate of participation for "${reg.event.title}" is ready to view & download. (+100 XP awarded)`,
+          type: "CERTIFICATE",
+          link: "/student-certificates",
+        },
+      });
+
+      return cert;
     });
 
     return res.status(201).json({
       success: true,
-      message: "Certificate generated successfully.",
+      message: "Certificate issued successfully.",
       certificate,
     });
   } catch (error) {
-    console.error("GENERATE CERTIFICATE ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to generate certificate.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
-// Student view their own certificates
-const getMyCertificates = async (req, res) => {
+// ======================================================
+// BULK ISSUE CERTIFICATES FOR ALL ATTENDED STUDENTS
+// ======================================================
+const bulkIssueCertificates = async (req, res, next) => {
+  try {
+    const { eventId } = req.body;
+
+    if (!eventId) {
+      return res.status(400).json({
+        success: false,
+        message: "Event ID is required.",
+      });
+    }
+
+    const event = await prisma.event.findUnique({
+      where: { id: eventId },
+    });
+
+    if (!event) {
+      return res.status(404).json({
+        success: false,
+        message: "Event not found.",
+      });
+    }
+
+    // Find all attended students without certificates
+    const eligibleRegistrations = await prisma.registration.findMany({
+      where: {
+        eventId,
+        attended: true,
+        certificate: null,
+      },
+      include: { user: true },
+    });
+
+    let issuedCount = 0;
+
+    for (const reg of eligibleRegistrations) {
+      const certificateCode = generateCertificateCode(event.title);
+
+      await prisma.certificate.create({
+        data: {
+          certificateCode,
+          userId: reg.userId,
+          eventId: reg.eventId,
+          registrationId: reg.id,
+          issueDate: new Date(),
+        },
+      });
+
+      // Award XP & Notification
+      await prisma.user.update({
+        where: { id: reg.userId },
+        data: { xp: { increment: 100 } },
+      });
+
+      await prisma.notification.create({
+        data: {
+          userId: reg.userId,
+          title: `Certificate Ready: ${event.title}`,
+          message: `Your verified certificate for "${event.title}" is now available on your dashboard!`,
+          type: "CERTIFICATE",
+          link: "/student-certificates",
+        },
+      });
+
+      issuedCount++;
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Successfully issued ${issuedCount} certificate(s).`,
+      issuedCount,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// ======================================================
+// GET MY CERTIFICATES (Student)
+// ======================================================
+const getMyCertificates = async (req, res, next) => {
   try {
     const userId = req.user.id;
 
     const certificates = await prisma.certificate.findMany({
-      where: {
-        userId,
-      },
+      where: { userId },
       include: {
         event: {
-          include: {
-            college: true,
-          },
+          include: { college: true },
         },
         user: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            department: true,
-            year: true,
-          },
+          select: { id: true, fullName: true, email: true, department: true },
         },
       },
-      orderBy: {
-        issueDate: "desc",
-      },
+      orderBy: { issueDate: "desc" },
     });
 
     return res.status(200).json({
       success: true,
-      count: certificates.length,
       certificates,
     });
   } catch (error) {
-    console.error("GET MY CERTIFICATES ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch certificates.",
-      error: error.message,
-    });
+    next(error);
   }
 };
 
-// Admin view all issued certificates
-const getAllCertificates = async (req, res) => {
-  try {
-    const certificates = await prisma.certificate.findMany({
-      include: {
-        event: true,
-        user: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            department: true,
-            year: true,
-          },
-        },
-      },
-      orderBy: {
-        issueDate: "desc",
-      },
-    });
-
-    return res.status(200).json({
-      success: true,
-      count: certificates.length,
-      certificates,
-    });
-  } catch (error) {
-    console.error("GET ALL CERTIFICATES ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Failed to fetch certificates.",
-      error: error.message,
-    });
-  }
-};
-
-// Public certificate verification
-const verifyCertificate = async (req, res) => {
+// ======================================================
+// PUBLIC VERIFY CERTIFICATE (No login required)
+// ======================================================
+const verifyCertificate = async (req, res, next) => {
   try {
     const { code } = req.params;
 
+    if (!code) {
+      return res.status(400).json({
+        success: false,
+        message: "Certificate code is required.",
+      });
+    }
+
     const certificate = await prisma.certificate.findUnique({
-      where: {
-        certificateCode: code.toUpperCase().trim(),
-      },
+      where: { certificateCode: code.trim().toUpperCase() },
       include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            department: true,
+          },
+        },
         event: {
           include: {
             college: true,
-          },
-        },
-        user: {
-          select: {
-            fullName: true,
-            email: true,
-            department: true,
-            year: true,
           },
         },
       },
@@ -207,38 +251,69 @@ const verifyCertificate = async (req, res) => {
       return res.status(404).json({
         success: false,
         valid: false,
-        message: "Certificate not found or invalid verification code.",
+        message: "No authentic record found for this certificate code.",
       });
     }
+
+    // Build LinkedIn Add-To-Profile URL
+    const clientBaseUrl = process.env.CLIENT_BASE_URL || "http://localhost:5173";
+    const certUrl = `${clientBaseUrl}/verify-certificate/${certificate.certificateCode}`;
+    const issueYear = new Date(certificate.issueDate).getFullYear();
+    const issueMonth = new Date(certificate.issueDate).getMonth() + 1;
+    const certName = encodeURIComponent(`${certificate.event.title} - Certificate of Participation`);
+    const orgName = encodeURIComponent(certificate.event.college?.name || "CampusConnect");
+
+    const linkedInShareUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certName}&organizationName=${orgName}&issueYear=${issueYear}&issueMonth=${issueMonth}&certUrl=${encodeURIComponent(certUrl)}&certId=${certificate.certificateCode}`;
 
     return res.status(200).json({
       success: true,
       valid: true,
       certificate: {
+        id: certificate.id,
         certificateCode: certificate.certificateCode,
-        issueDate: certificate.issueDate,
         studentName: certificate.user.fullName,
-        studentDepartment: certificate.user.department,
-        studentYear: certificate.user.year,
+        department: certificate.user.department,
         eventTitle: certificate.event.title,
-        eventVenue: certificate.event.venue,
+        eventCategory: certificate.event.category,
         eventDate: certificate.event.eventDate,
-        collegeName: certificate.event.college?.name || "CampusConnect College",
+        venue: certificate.event.venue,
+        collegeName: certificate.event.college?.name || "CampusConnect Institution",
+        issueDate: certificate.issueDate,
+        linkedInShareUrl,
+        verificationUrl: certUrl,
       },
     });
   } catch (error) {
-    console.error("VERIFY CERTIFICATE ERROR:", error);
-    return res.status(500).json({
-      success: false,
-      message: "Verification service error.",
-      error: error.message,
+    next(error);
+  }
+};
+
+// ======================================================
+// GET ALL CERTIFICATES (Admin)
+// ======================================================
+const getAllCertificates = async (req, res, next) => {
+  try {
+    const certificates = await prisma.certificate.findMany({
+      include: {
+        user: { select: { id: true, fullName: true, email: true, department: true } },
+        event: { select: { id: true, title: true, eventDate: true, category: true } },
+      },
+      orderBy: { issueDate: "desc" },
     });
+
+    return res.status(200).json({
+      success: true,
+      certificates,
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
 module.exports = {
-  generateCertificate,
+  issueCertificate,
+  bulkIssueCertificates,
   getMyCertificates,
-  getAllCertificates,
   verifyCertificate,
+  getAllCertificates,
 };
