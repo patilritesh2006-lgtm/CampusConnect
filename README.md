@@ -1,18 +1,60 @@
-# 🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform
+﻿# 🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform
 
+[![CI/CD Pipeline](https://github.com/patilritesh2006-lgtm/CampusConnect/actions/workflows/ci.yml/badge.svg)](https://github.com/patilritesh2006-lgtm/CampusConnect/actions)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Issues](https://img.shields.io/github/issues/patilritesh2006-lgtm/CampusConnect)](https://github.com/patilritesh2006-lgtm/CampusConnect/issues)
 [![React](https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![JWT Auth](https://img.shields.io/badge/Auth-Dual--Token%20%2B%20Rotation-000000?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
 [![PWA](https://img.shields.io/badge/PWA-Cross--Platform%20Ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
 
 > **CampusConnect** is an enterprise-grade, full-stack college event and student activity ecosystem. It transforms campus life through **time-based rotating QR check-ins**, **verified digital credentials with LinkedIn integration**, **an AI-powered Campus Assistant & Recommendation engine**, **public digital portfolios**, **campus gamification with XP leaderboards**, **automated reminder schedulers**, and **role-based administrative analytics**.
 
 ---
 
-## 🌟 Key Highlights & Architecture
+## 📑 Table of Contents
+1. [System Architecture](#-system-architecture)
+2. [Screenshots Preview](#-screenshots-preview)
+3. [Key Highlights & Features](#-key-highlights--features)
+4. [Tech Stack](#-tech-stack)
+5. [Quick Start Guide](#-quick-start-guide)
+6. [Demo Accounts (Local Dev Only)](#-local-development-only--demo-accounts)
+7. [Running Automated Tests](#-running-automated-tests)
+8. [Mobile LAN & PWA Guide](#-mobile-lan--pwa-testing)
+9. [REST API Reference](#-rest-api-summary)
+10. [Contributing & Community](#-contributing--community)
+11. [License](#-license)
+
+---
+
+## 🏗️ System Architecture
+
+```mermaid
+graph TD
+    Client["📱 Frontend (React 19 / Vite / PWA / Tailwind)"] -->|"HTTPS / REST API (JWT & HTTP-Only Cookies)"| Server["⚙️ Backend (Node.js / Express 5 API)"]
+    Server -->|"Prisma ORM v6"| DB[("🗄️ PostgreSQL Database")]
+    Server -->|"node-cron"| Scheduler["⏰ Background Reminder Scheduler"]
+    Server -->|"HMAC-SHA256"| QR["🔄 Rotating QR Code Service"]
+    Server -->|"Zod & Rate Limiter"| Security["🛡️ Security & Validation Layer"]
+```
+
+---
+
+## 📸 Screenshots Preview
+
+| Student Dashboard 2.0 | Interactive Event Calendar |
+| :---: | :---: |
+| ![CampusConnect Dashboard](./docs/screenshots/dashboard.png) <br> *Activity metrics, XP progress bar, quick QR scanner, and AI recommendations* | ![Event Calendar](./docs/screenshots/calendar.png) <br> *Campus-wide monthly schedule with category filters and event modals* |
+
+| Verified Digital Certificate | Administrative Analytics |
+| :---: | :---: |
+| ![Verified Digital Certificate](./docs/screenshots/certificate.png) <br> *Cryptographic credential with QR verification & LinkedIn Add-to-Profile* | ![Admin Analytics](./docs/screenshots/analytics.png) <br> *Student Engagement Scores (0-100), department metrics, and attendance trends* |
+
+---
+
+## 🌟 Key Highlights & Features
 
 ### 1. 🔐 Enterprise Authentication & Security (Phase 1 & 21)
 * **Dual-Token Architecture**: Short-lived Access Tokens (15 min) + Secure, HTTP-only, `SameSite` Refresh Tokens stored hashed in PostgreSQL.
@@ -70,8 +112,8 @@
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend** | React 19, Vite, Tailwind CSS v4, Lucide React, Axios, React Router v7 |
-| **Backend** | Node.js, Express 5, Prisma ORM v6, node-cron, supertest, helmet, express-rate-limit, cookie-parser, zod |
+| **Frontend** | React 19, Vite, Tailwind CSS v4, Lucide React, Axios, React Router v7, Vitest, React Testing Library |
+| **Backend** | Node.js, Express 5, Prisma ORM v6, Jest, Supertest, node-cron, helmet, express-rate-limit, cookie-parser, zod |
 | **Database** | PostgreSQL |
 | **Security** | JWT (Dual-Token + Rotation), bcrypt, HMAC-SHA256, HTTP-only Cookies |
 | **Cross-Platform** | Progressive Web App (PWA), Docker, Docker Compose, Nginx |
@@ -93,10 +135,10 @@ cd CampusConnect
 cd backend
 npm install
 
-# Setup environment
+# Setup environment variables (see .env.example)
 cp .env.example .env
 
-# Push schema to PostgreSQL database
+# Push schema to PostgreSQL database & generate client
 npx prisma db push
 npx prisma generate
 
@@ -106,7 +148,7 @@ npm run seed
 # Start Backend Server
 npm run dev
 ```
-*Backend runs on `http://localhost:5000` (or `http://0.0.0.0:5000`).*
+*Backend runs on `http://localhost:5000`.*
 
 ---
 
@@ -122,21 +164,6 @@ npm run dev
 
 ---
 
-### 4. Running Automated Tests
-```bash
-cd backend
-# Run Security Suite
-npm test
-
-# Run Master Suite (Phases 1 - 12 & 21)
-npm run test:master
-```
-*(All 24 automated tests will execute with 100% pass rate).*
-
----
-
----
-
 ## ⚠️ Local Development Only — Demo Accounts
 
 > **IMPORTANT**: In production environments, `JWT_SECRET` must be set to a long, cryptographically secure random string (min 32 characters). The default demo credentials below are generated by `npm run seed` strictly for local testing and demonstration. Never use these credentials in production.
@@ -149,6 +176,22 @@ npm run test:master
 | **Faculty** | `faculty@campusconnect.edu` | Academic Events, Department Rosters, Attendance Tracking |
 | **Coordinator** | `coordinator@campusconnect.edu` | Live Rotating QR Projector, Attendance Management |
 | **Student** | `student@campusconnect.edu` *(User: `riteshpatil`)* | Student Dashboard 2.0, QR Scanner, AI Assistant, Certificates, Public Portfolio |
+
+---
+
+## 🧪 Running Automated Tests
+
+### Backend Unit & Integration Tests (Jest):
+```bash
+cd backend
+npm test
+```
+
+### Frontend Component Tests (Vitest + React Testing Library):
+```bash
+cd frontend
+npm test
+```
 
 ---
 
@@ -199,6 +242,12 @@ npm run test:master
 
 ### Health & Monitoring
 * `GET  /api/health` — DB latency, uptime, version, and memory status
+
+---
+
+## 🤝 Contributing & Community
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) and [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) before submitting pull requests.
 
 ---
 
