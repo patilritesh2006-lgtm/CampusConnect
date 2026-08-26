@@ -1,14 +1,18 @@
 import axios from "axios";
 
 // Dynamically determine the backend API base URL
-// Works on localhost, local network (e.g. mobile testing on 192.168.x.x), and production deployments
-const baseURL =
-  import.meta.env.VITE_API_URL ||
-  import.meta.env.VITE_API_BASE_URL ||
-  "http://localhost:5000/api";
+// Automatically connects to localhost or your Wi-Fi IP (e.g. on mobile phones) or cloud URLs
+const getBaseURL = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.VITE_API_BASE_URL) return import.meta.env.VITE_API_BASE_URL;
+  if (typeof window !== "undefined" && window.location.hostname) {
+    return `http://${window.location.hostname}:5000/api`;
+  }
+  return "http://localhost:5000/api";
+};
 
 const API = axios.create({
-  baseURL,
+  baseURL: getBaseURL(),
 });
 
 // Automatically attach JWT token to every API request
