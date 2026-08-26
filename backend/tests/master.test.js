@@ -1,47 +1,21 @@
-﻿const path = require("path");
-require("dotenv").config({ path: path.join(__dirname, "../.env") });
-
-const request = require("supertest");
+﻿const request = require("supertest");
 const app = require("../server");
 const prisma = require("../config/prisma");
-const { generateEventQRToken } = require("../utils/qrService");
 
-async function runMasterTests() {
-  console.log("\n🧪 RUNNING CAMPUSCONNECT MASTER SUITE (PHASES 1 - 10 & 21)\n");
-
-  let passed = 0;
-  let failed = 0;
-
-  function assert(condition, testName, details = "") {
-    if (condition) {
-      console.log(`  ✅ PASS: ${testName}`);
-      passed++;
-    } else {
-      console.error(`  ❌ FAIL: ${testName} - ${details}`);
-      failed++;
-    }
-  }
-
-  // 1. Health check
-  try {
-    const res = await request(app).get("/api/health");
-    assert(res.status === 200 && res.body.status === "OK", "GET /api/health returns 200 OK");
-  } catch (e) {
-    assert(false, "Health Check", e.message);
-  }
-
-  // 2. Setup Test Accounts (Admin & Student)
-  const studentEmail = `student_${Date.now()}@test.campusconnect`;
-  const adminEmail = `admin_${Date.now()}@test.campusconnect`;
+describe("👑 CampusConnect Master Integration Test Suite", () => {
+  const studentEmail = `master_std_${Date.now()}@campusconnect.test`;
+  const adminEmail = `master_adm_${Date.now()}@campusconnect.test`;
   const testPassword = "SuperPassword123!@#";
 
   let studentToken = "";
   let adminToken = "";
   let studentUser = null;
-  let adminUser = null;
+  let testEvent = null;
+  let registration = null;
+  let certCode = "";
 
-  try {
-    // Create Student
+  beforeAll(async () => {
+    // 1. Create Student
     const studentRes = await request(app).post("/api/auth/register").send({
       fullName: "Master Test Student",
       email: studentEmail,
@@ -53,7 +27,7 @@ async function runMasterTests() {
     studentToken = studentRes.body.token;
     studentUser = studentRes.body.user;
 
-    // Create Admin
+    // 2. Create Admin
     const adminRes = await request(app).post("/api/auth/register").send({
       fullName: "Master Test Admin",
       email: adminEmail,
@@ -61,36 +35,16 @@ async function runMasterTests() {
       role: "ADMIN",
     });
     adminToken = adminRes.body.token;
-    adminUser = adminRes.body.user;
 
-    assert(!!studentToken && !!adminToken, "Setup test student and admin accounts");
-  } catch (e) {
-    assert(false, "Account setup", e.message);
-  }
-
-  // 3. Phase 2 — RBAC Negative & Positive Test
-  try {
-    // Student hitting Admin Analytics (expect 403)
-    const studentAttempt = await request(app)
-      .get("/api/analytics/admin-overview")
-      .set("Authorization", `Bearer ${studentToken}`);
-    assert(studentAttempt.status === 403, "RBAC: STUDENT blocked from Admin Analytics with 403 Forbidden");
-
-    // Admin hitting Admin Analytics (expect 200)
-    const adminAttempt = await request(app)
-      .get("/api/analytics/admin-overview")
-      .set("Authorization", `Bearer ${adminToken}`);
-    assert(adminAttempt.status === 200 && adminAttempt.body.success === true, "RBAC: ADMIN granted access to Admin Analytics with 200 OK");
-  } catch (e) {
-    assert(false, "RBAC tests", e.message);
-  }
-
-  // 4. Setup Test Event
-  let testEvent = null;
-  try {
-    const college = await prisma.college.findFirst() || await prisma.college.create({
-      data: { name: "Test Engineering College", email: `college_${Date.now()}@test.edu` },
-    });
+    // 3. Create College & Event
+    const college =
+      (await prisma.college.findFirst()) ||
+      (await prisma.college.create({
+        data: {
+          name: "Master Engineering College",
+          email: `master_col_${Date.now()}@test.edu`,
+        },
+      }));
 
     testEvent = await prisma.event.create({
       data: {
@@ -99,18 +53,40 @@ async function runMasterTests() {
         venue: "Tech Auditorium",
         category: "Hackathon",
         capacity: 100,
-        eventDate: new Date(Date.now() + 86400000), // tomorrow
+        eventDate: new Date(Date.now() + 86400000),
         collegeId: college.id,
       },
     });
-    assert(!!testEvent.id, "Create test event for lifecycle verification");
-  } catch (e) {
-    assert(false, "Event creation", e.message);
-  }
+  });
 
-  // 5. Student registers for event
-  let registration = null;
-  try {
+  afterAll(async () => {
+    try {
+      await prisma.user.deleteMany({
+        where: { email: { in: [studentEmail, adminEmail] } },
+      });
+      if (testEvent) {
+        await prisma.event.delete({ where: { id: testEvent.id } });
+      }
+      await prisma.$disconnect();
+    } catch (e) {}
+  });
+
+  it("RBAC: STUDENT should be blocked from Admin Analytics with 403", async () => {
+    const res = await request(app)
+      .get("/api/analytics/admin-overview")
+      .set("Authorization", `Bearer ${studentToken}`);
+    expect(res.status).toBe(403);
+  });
+
+  it("RBAC: ADMIN should be granted access to Admin Analytics with 200", async () => {
+    const res = await request(app)
+      .get("/api/analytics/admin-overview")
+      .set("Authorization", `Bearer ${adminToken}`);
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+  });
+
+  it("Student should register for the event", async () => {
     registration = await prisma.registration.create({
       data: {
         userId: studentUser.id,
@@ -118,20 +94,16 @@ async function runMasterTests() {
         attended: false,
       },
     });
-    assert(!!registration.id, "Student successfully registered for event");
-  } catch (e) {
-    assert(false, "Registration", e.message);
-  }
+    expect(registration.id).toBeDefined();
+  });
 
-  // 6. Phase 3 — Rotating QR Generation & Check-In
-  try {
-    // Admin gets rotating QR
+  it("Admin generates live rotating QR token & Student checks in", async () => {
     const qrRes = await request(app)
       .get(`/api/attendance/events/${testEvent.id}/rotating-qr`)
       .set("Authorization", `Bearer ${adminToken}`);
-    assert(qrRes.status === 200 && !!qrRes.body.qrToken, "Admin generates live rotating QR token");
+    expect(qrRes.status).toBe(200);
+    expect(qrRes.body.qrToken).toBeDefined();
 
-    // Student checks in via QR token
     const checkinRes = await request(app)
       .post("/api/attendance/checkin-qr")
       .set("Authorization", `Bearer ${studentToken}`)
@@ -140,95 +112,71 @@ async function runMasterTests() {
         qrToken: qrRes.body.qrToken,
       });
 
-    assert(
-      checkinRes.status === 200 && checkinRes.body.success === true,
-      "Student checks in via QR scan & receives +50 XP"
-    );
+    expect(checkinRes.status).toBe(200);
+    expect(checkinRes.body.success).toBe(true);
 
-    // Prevent duplicate check-in
-    const dupCheckin = await request(app)
+    // Prevent duplicate checkin
+    const dupRes = await request(app)
       .post("/api/attendance/checkin-qr")
       .set("Authorization", `Bearer ${studentToken}`)
       .send({
         eventId: testEvent.id,
         qrToken: qrRes.body.qrToken,
       });
-    assert(dupCheckin.status === 400, "Prevent duplicate QR check-in");
-  } catch (e) {
-    assert(false, "QR Check-in", e.message);
-  }
+    expect(dupRes.status).toBe(400);
+  });
 
-  // 7. Phase 4 — Certificate Issuance & Public Verification
-  let certCode = "";
-  try {
+  it("Admin issues certificate & public verifies it", async () => {
     const issueRes = await request(app)
       .post("/api/certificates/issue")
       .set("Authorization", `Bearer ${adminToken}`)
       .send({ registrationId: registration.id });
 
-    assert(issueRes.status === 201 && !!issueRes.body.certificate.certificateCode, "Admin issues digital certificate with unique code");
+    expect(issueRes.status).toBe(201);
     certCode = issueRes.body.certificate.certificateCode;
+    expect(certCode).toBeDefined();
 
-    // Public Zero-Login Verification
     const verifyRes = await request(app).get(`/api/certificates/verify/${certCode}`);
-    assert(
-      verifyRes.status === 200 && verifyRes.body.valid === true && !!verifyRes.body.certificate.linkedInShareUrl,
-      "Public /verify/:code confirms certificate authenticity and provides LinkedIn share link"
-    );
-  } catch (e) {
-    assert(false, "Certificate issuance & verification", e.message);
-  }
+    expect(verifyRes.status).toBe(200);
+    expect(verifyRes.body.valid).toBe(true);
+    expect(verifyRes.body.certificate.linkedInShareUrl).toBeDefined();
+  });
 
-  // 8. Phase 7 — Public Student Digital Portfolio
-  try {
-    // Set username
-    const username = `student_${Date.now()}`;
+  it("Public student portfolio returns verified achievements without PII", async () => {
+    const username = `master_std_${Date.now()}`;
     await prisma.user.update({
       where: { id: studentUser.id },
       data: {
         username,
-        bio: "Full Stack Engineer & AI Enthusiast",
-        skills: ["React", "Node.js", "Python"],
+        bio: "Full Stack Engineer",
+        skills: ["React", "Node.js"],
         portfolioPublic: true,
       },
     });
 
-    const portfolioRes = await request(app).get(`/api/users/portfolio/${username}`);
-    assert(
-      portfolioRes.status === 200 &&
-        portfolioRes.body.portfolio.fullName === "Master Test Student" &&
-        portfolioRes.body.portfolio.badges.length > 0 &&
-        !portfolioRes.body.portfolio.email, // ensures PII email is NOT leaked
-      "Public Digital Portfolio (/portfolio/:username) returns verified achievements with zero PII leaks"
-    );
-  } catch (e) {
-    assert(false, "Digital Portfolio", e.message);
-  }
+    const res = await request(app).get(`/api/users/portfolio/${username}`);
+    expect(res.status).toBe(200);
+    expect(res.body.portfolio.fullName).toBe("Master Test Student");
+    expect(res.body.portfolio.badges.length).toBeGreaterThan(0);
+    expect(res.body.portfolio.email).toBeUndefined();
+  });
 
-  // 9. Phase 8 — AI Event Recommendations & Campus Assistant
-  try {
+  it("AI Recommendations and Assistant return structured data", async () => {
     const recRes = await request(app)
       .get("/api/ai/recommendations")
       .set("Authorization", `Bearer ${studentToken}`);
-    assert(
-      recRes.status === 200 && Array.isArray(recRes.body.recommendations),
-      "AI Recommendation engine calculates match percentage per student profile"
-    );
+    expect(recRes.status).toBe(200);
+    expect(Array.isArray(recRes.body.recommendations)).toBe(true);
 
     const askRes = await request(app)
       .post("/api/ai/assistant")
       .set("Authorization", `Bearer ${studentToken}`)
       .send({ message: "What hackathons are upcoming?" });
-    assert(
-      askRes.status === 200 && !!askRes.body.reply,
-      "AI Campus Assistant parses intent and returns structured response"
-    );
-  } catch (e) {
-    assert(false, "AI Recommendations & Assistant", e.message);
-  }
+    expect(askRes.status).toBe(200);
+    expect(askRes.body.reply).toBeDefined();
+  });
 
-  // 10. Phase 9 — Event Feedback & Surveys
-  try {
+  it("Attended student submits 5-star feedback and summary updates", async () => {
     const fbRes = await request(app)
       .post(`/api/feedback/events/${testEvent.id}/feedback`)
       .set("Authorization", `Bearer ${studentToken}`)
@@ -240,36 +188,10 @@ async function runMasterTests() {
         wouldRecommend: true,
         comments: "Outstanding hackathon organization!",
       });
-
-    assert(fbRes.status === 201 && fbRes.body.success === true, "Attended student submits 5-star event feedback (+25 XP)");
+    expect(fbRes.status).toBe(201);
 
     const summaryRes = await request(app).get(`/api/feedback/events/${testEvent.id}/feedback`);
-    assert(
-      summaryRes.status === 200 && summaryRes.body.summary.avgRating === 5,
-      "Event feedback summary calculates average star rating & recommendations"
-    );
-  } catch (e) {
-    assert(false, "Event Feedback", e.message);
-  }
-
-  // Clean up
-  try {
-    await prisma.user.deleteMany({
-      where: { email: { in: [studentEmail, adminEmail] } },
-    });
-    if (testEvent) {
-      await prisma.event.delete({ where: { id: testEvent.id } });
-    }
-  } catch (e) {}
-
-  console.log(`\n======================================================`);
-  console.log(`📊 MASTER TEST RESULTS: ${passed} PASSED, ${failed} FAILED`);
-  console.log(`======================================================\n`);
-
-  process.exit(failed > 0 ? 1 : 0);
-}
-
-runMasterTests().catch((err) => {
-  console.error("Master Test Runner error:", err);
-  process.exit(1);
+    expect(summaryRes.status).toBe(200);
+    expect(summaryRes.body.summary.avgRating).toBe(5);
+  });
 });

@@ -10,11 +10,11 @@ const registerForEvent = async (req, res) => {
   try {
     console.log("========== REGISTER EVENT ==========");
 
-    const targetUserId = req.user?.id || req.body.user_id;
-    const { event_id } = req.body;
+    const targetUserId = req.user?.id || req.body.user_id || req.body.userId;
+    const targetEventId = req.body.eventId || req.body.event_id;
 
     // Check required fields
-    if (!targetUserId || !event_id) {
+    if (!targetUserId || !targetEventId) {
       return res.status(400).json({
         success: false,
         message: "User ID and Event ID are required.",
@@ -44,7 +44,7 @@ const registerForEvent = async (req, res) => {
 
     const event = await prisma.event.findUnique({
       where: {
-        id: event_id,
+        id: targetEventId,
       },
     });
 
@@ -56,6 +56,21 @@ const registerForEvent = async (req, res) => {
     }
 
     // ==================================================
+    // CHECK EVENT CAPACITY LIMITS
+    // ==================================================
+    if (event.capacity && event.capacity > 0) {
+      const currentCount = await prisma.registration.count({
+        where: { eventId: targetEventId },
+      });
+      if (currentCount >= event.capacity) {
+        return res.status(400).json({
+          success: false,
+          message: "Event is at full capacity.",
+        });
+      }
+    }
+
+    // ==================================================
     // CHECK DUPLICATE REGISTRATION
     // ==================================================
 
@@ -63,13 +78,13 @@ const registerForEvent = async (req, res) => {
       where: {
         userId_eventId: {
           userId: targetUserId,
-          eventId: event_id,
+          eventId: targetEventId,
         },
       },
     });
 
     if (existing) {
-      return res.status(409).json({
+      return res.status(400).json({
         success: false,
         message: "Already registered for this event.",
       });
@@ -82,7 +97,7 @@ const registerForEvent = async (req, res) => {
     const registration = await prisma.registration.create({
       data: {
         userId: targetUserId,
-        eventId: event_id,
+        eventId: targetEventId,
       },
       include: {
         event: true,

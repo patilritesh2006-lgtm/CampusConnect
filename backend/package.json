@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "nodemon server.js",
     "start": "node server.js",
-    "test": "node tests/auth.test.js",
+    "test": "jest --runInBand --forceExit",
     "test:master": "node tests/master.test.js",
     "seed": "node prisma/seed.js",
     "prisma": "prisma",
@@ -30,6 +30,7 @@
     "zod": "^4.4.3"
   },
   "devDependencies": {
+    "jest": "^30.4.2",
     "nodemon": "^3.1.10",
     "prisma": "^6.0.0",
     "supertest": "^7.2.2"
