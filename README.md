@@ -1,262 +1,198 @@
-# 🎓 CampusConnect — College Event & Student Activity Platform
+﻿# 🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform
 
 [![React](https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![JWT Auth](https://img.shields.io/badge/Auth-JWT%20%2B%20bcrypt-000000?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
+[![JWT Auth](https://img.shields.io/badge/Auth-Dual--Token%20%2B%20Rotation-000000?logo=jsonwebtokens&logoColor=white)](https://jwt.io/)
+[![PWA](https://img.shields.io/badge/PWA-Cross--Platform%20Ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
 
-> **CampusConnect** is a centralized college student activity and event management platform. It streamlines campus life by transforming fragmented event announcements, manual attendance, and paper certificates into a unified system featuring **real-time notifications**, **digital certificates with QR verification**, **gamification achievements**, **interactive calendars**, and **administrative analytics**.
+> **CampusConnect** is an enterprise-grade, full-stack college event and student activity ecosystem. It transforms campus life through **time-based rotating QR check-ins**, **verified digital credentials with LinkedIn integration**, **an AI-powered Campus Assistant & Recommendation engine**, **public digital portfolios**, **campus gamification with XP leaderboards**, **automated reminder schedulers**, and **role-based administrative analytics**.
 
 ---
 
-## 🚀 Key Features
+## 🌟 Key Highlights & Architecture
 
-### 1. 📅 Event Management & Discovery
-* **Event Creation & Editing**: Admins can publish events with title, description, venue, date, category, capacity limit, and registration deadlines.
-* **Category Filtering**: Explore events by tags: `Hackathon`, `Workshop`, `Seminar`, `Cultural`, `Sports`, and `Conference`.
-* **Instant Search**: Search campus events by keyword, title, venue, or status (`Upcoming`, `Ongoing`, `Completed`).
+### 1. 🔐 Enterprise Authentication & Security (Phase 1 & 21)
+* **Dual-Token Architecture**: Short-lived Access Tokens (15 min) + Secure, HTTP-only, `SameSite` Refresh Tokens stored hashed in PostgreSQL.
+* **Token Rotation**: Refresh tokens are automatically rotated and old tokens revoked upon refresh to prevent replay attacks.
+* **Account Lockout Protection**: Automatically locks accounts for 15 minutes after 5 consecutive failed login attempts.
+* **Multi-Device Revocation**: Incrementing `tokenVersion` on password reset or `/api/auth/logout-all` immediately invalidates all active sessions.
+* **Input Validation & Sanitization**: Strict Zod schema validation on all payloads.
+* **Production Hardening**: `helmet` secure headers, `express-rate-limit` (auth + general limiters), centralized `errorHandler`, and `/api/health` monitoring.
 
-### 2. 📝 Event Registration & Cancellation
-* **One-Click Registration**: Students can sign up with automatic duplicate check and capacity limits.
-* **Registration Cancellation**: Students can cancel un-attended registrations directly from their dashboard.
-* **Registration Roster**: Dedicated attendee lists for each event.
+### 2. 🛡️ 5-Role Role-Based Access Control (Phase 2)
+* Support for 5 specialized roles:
+  * `SUPER_ADMIN`: Institution-wide management and configuration.
+  * `ADMIN`: Event approvals, analytics, and college management.
+  * `FACULTY`: Academic events, department rosters, and student oversight.
+  * `EVENT_COORDINATOR`: Live rotating QR projection, attendance management, and media uploads.
+  * `STUDENT`: Registrations, check-in scanning, digital portfolio, and certificates.
 
-### 3. 📋 Live Attendance Tracking
-* **Individual Status Toggle**: Switch student attendance between **Present** and **Absent** in real-time.
-* **Bulk Roll Call**: One-click **"Mark All Attended"** button for mass venue check-ins.
-* **CSV Export**: Export attendee rosters with full names, departments, attendance status, and certificate codes.
-* **Automated Attendance Notifications**: Students receive an instant alert when marked present.
+### 3. 📱 Dynamic Rotating QR Event Check-In (Phase 3)
+* **Fraud-Proof QR Rotation**: Event organizers project a live QR code that rotates every 30 seconds signed with time-bucketed HMAC-SHA256 tokens to prevent screenshot sharing.
+* **In-App QR Scanner**: Students scan or enter the live token to record verified attendance, receiving **+50 XP** immediately.
+* **Bulk Roll Call & CSV Export**: One-click mass check-in and attendance roster CSV download.
 
-### 4. 📜 Verified Digital Certificates
-* **Automated Issuance**: Admins can issue official participation certificates to verified attendees with one click.
-* **Unique Credential Identifiers**: Cryptographically sound, collision-free codes (e.g. `CC-2026-A&RE-91D342`).
-* **Royal Certificate Template**: High-resolution, gold-bordered certificates with institution headers, authorized signatory seals, and issue dates.
-* **Print / PDF Download**: Built-in `@media print` formatting to save or print official certificates directly from the browser.
+### 4. 📜 Verifiable Digital Certificates with LinkedIn Sharing (Phase 4)
+* **Cryptographic Certificate Codes**: Unique identifiers (e.g. `CC-2026-AIHA-7F3A9C`).
+* **Public Verification Portal**: Zero-login credential lookup at `/verify-certificate/:certificateCode`.
+* **1-Click LinkedIn Add-To-Profile**: Automatically fills credential title, issuing organization, issue date, and direct verification link on LinkedIn.
 
-### 5. 🛡️ Public Certificate Verification Portal
-* **Anonymously Accessible**: Public route at `/verify-certificate` and `/verify-certificate/:certificateCode` (no login required).
-* **Tamper-Proof Verification**: Instantly verifies the recipient student, event name, venue, event date, issue date, and issuing college.
+### 5. 📊 Advanced Analytics & Engagement Scoring (Phase 5)
+* **Student Engagement Score (0–100)**: Weighted algorithm computing student participation based on attendance rate, event volume, certificates earned, and XP level.
+* **Department Insights**: Live breakdown of student registrations, attendance percentage, and fill rate across academic departments.
 
-### 6. 🔔 Real-Time In-App Notifications
-* **Navbar Notification Bell**: Unread badge counter with dropdown previews and relative timestamps.
-* **Event Triggers**: Instant alerts on attendance confirmation, certificate issuance, new event schedules, and notice broadcasts.
-* **Read Status**: Mark individual notifications as read or use "Mark all read".
+### 6. ⏰ Automated Event Reminder Schedulers (Phase 6)
+* Background cron jobs (`node-cron`) automatically send alerts to registered students at **24 hours** and **1 hour** before events start.
 
-### 7. 📢 Campus Notice Board & Broadcasts
-* **Priority Tagging**: High-visibility notices with priority badges (`Urgent 🚨`, `High ⚠️`, `Normal`).
-* **Notice Categories**: Filter notices by `General`, `Important`, `Event`, `Workshop`, and `Competition`.
-* **Admin Broadcast Modal**: Admins can broadcast announcements that automatically dispatch notifications to all students.
+### 7. 🌐 Public Student Digital Portfolio (Phase 7)
+* Publicly shareable student portfolio at `/portfolio/:username`.
+* Showcases verified skills, attendance history, verified certificates, and unlocked badges with **zero sensitive PII leaks** (no emails, phone numbers, or passwords exposed).
+* Student privacy toggle to switch portfolio between public and private.
 
-### 8. 🏆 Student Profile & Gamification Achievements
-* **Profile Management**: Update full name, department, year of study, and manage account password.
-* **Activity Scoreboard**: Live metrics tracking Total Registered, Total Attended, Total Certificates, and Attendance Rate %.
-* **Unlockable Badges**:
-  * 🎯 **Active Participant**: Registered for 1+ events.
-  * 🚀 **Event Explorer**: Registered for 3+ events.
-  * 🥇 **Event Champion**: Attended 3+ events.
-  * 📜 **Certified Scholar**: Earned 1+ certificates.
-  * ⭐ **Punctual Attendee**: 100% attendance rate.
+### 8. 🤖 AI Campus Assistant & Smart Recommendations (Phase 8)
+* **Personalized Recommendations**: Analyzes student department, skills, and past event history to compute match percentages (e.g. `95% Match`).
+* **Interactive AI Assistant**: Global drawer assistant in the bottom right corner answering natural-language queries about events, hackathons, attendance, and certificates.
 
-### 9. 📆 Interactive Event Calendar
-* **Monthly Schedule Grid**: Visual calendar with month navigation and quick "Today" jump.
-* **Filter Views**: Toggle between "All Campus Events" and "My Registered Events".
-* **Event Modals**: Click on any date cell or event chip to view venue, date, and register.
+### 9. ⭐ Event Feedback & Surveys (Phase 9)
+* 1–5 star ratings, structured experience evaluations, and recommendations.
+* Submitting feedback awards students **+25 XP**.
 
-### 10. 📊 Administrative Analytics & Intelligence
-* **Key Metrics Summary**: Total Events, Total Students, Registrations, Confirmed Attendees, Certificates Issued, and Overall Attendance Rate %.
-* **Department Breakdown**: Visual distribution bars showing student participation per department.
-* **Top Popular Events**: Ranked leaderboard tracking popularity by registration and attendance count.
-* **Event Lifecycle Distribution**: Breakdown of upcoming, ongoing, completed, and cancelled events.
+### 10. 🎮 Gamification & Campus Leaderboard (Phases 11 & 12)
+* Live XP progress bar and Level badge (`Level X` $\rightarrow$ `Level X+1`).
+* Campus-wide Leaderboard (`/leaderboard`) ranking top achievers.
 
 ---
 
 ## 🛠️ Tech Stack
 
-### Frontend
-* **React 19** with **Vite**
-* **Tailwind CSS** for modern UI and responsive layouts
-* **React Router v7** for single-page client routing and role-based protection
-* **Axios** for API requests with JWT interceptors
-* **Lucide React** for UI icons
-
-### Backend
-* **Node.js** & **Express** REST API
-* **Prisma ORM** for schema modeling and database queries
-* **PostgreSQL** relational database
-* **JWT (JSON Web Tokens)** for stateless authentication
-* **bcrypt** for salted password hashing
-* **CORS** & **dotenv** for security configuration
+| Layer | Technologies |
+| :--- | :--- |
+| **Frontend** | React 19, Vite, Tailwind CSS v4, Lucide React, Axios, React Router v7 |
+| **Backend** | Node.js, Express 5, Prisma ORM v6, node-cron, supertest, helmet, express-rate-limit, cookie-parser, zod |
+| **Database** | PostgreSQL |
+| **Security** | JWT (Dual-Token + Rotation), bcrypt, HMAC-SHA256, HTTP-only Cookies |
+| **Cross-Platform** | Progressive Web App (PWA), Docker, Docker Compose, Nginx |
 
 ---
 
-## 📂 Project Structure
+## 🚀 Quick Start Guide
 
-```text
-CampusConnect/
-├── backend/
-│   ├── config/
-│   │   └── prisma.js              # Prisma Client instance
-│   ├── controllers/
-│   │   ├── analyticsController.js # Admin aggregate intelligence & stats
-│   │   ├── announcementController.js # Campus notices & broadcasts
-│   │   ├── attendanceController.js   # Single & bulk attendance tracking
-│   │   ├── authController.js         # Register, Login & JWT issuance
-│   │   ├── certificateController.js  # Certificate generator & verification
-│   │   ├── eventController.js        # Event CRUD & attendee roster
-│   │   ├── notificationController.js # In-app notification management
-│   │   ├── registrationController.js # Registration & cancellation
-│   │   ├── studentController.js      # Student list for admin
-│   │   └── userController.js         # Profile, badges & password update
-│   ├── middleware/
-│   │   └── authMiddleware.js      # JWT authentication & role-based gates
-│   ├── prisma/
-│   │   └── schema.prisma          # Database models (User, Event, Registration, Certificate, Notification, Announcement)
-│   ├── routes/                    # Express route routers
-│   ├── server.js                  # Express entry point
-│   └── package.json
-│
-├── frontend/
-│   ├── src/
-│   │   ├── api/
-│   │   │   └── api.js             # Axios base instance with auth headers
-│   │   ├── components/
-│   │   │   ├── AppNavbar.jsx      # Universal responsive navigation bar
-│   │   │   ├── NotificationBell.jsx # Live notification popover bell
-│   │   │   └── ProtectedRoute.jsx # Role-based route guard
-│   │   ├── pages/
-│   │   │   ├── AdminAnalytics.jsx     # Visual analytics & department metrics
-│   │   │   ├── AdminCertificates.jsx  # Certificate registry & search
-│   │   │   ├── AdminDashboard.jsx     # Admin control center
-│   │   │   ├── AdminEventStudents.jsx # Attendee roster & attendance switches
-│   │   │   ├── AdminStudents.jsx      # Student management table
-│   │   │   ├── Announcements.jsx      # Notice board & publishing modal
-│   │   │   ├── CalendarView.jsx       # Interactive monthly schedule
-│   │   │   ├── CertificateVerify.jsx  # Public certificate verification
-│   │   │   ├── Home.jsx               # Landing page
-│   │   │   ├── Login.jsx              # Student registration & dual-role login
-│   │   │   ├── MyRegistrations.jsx    # Registration history & certificate claims
-│   │   │   ├── StudentCertificates.jsx# Royal printable certificate gallery
-│   │   │   ├── StudentDashboard.jsx   # Student activity workspace
-│   │   │   ├── StudentEvents.jsx      # Events explorer with category filters
-│   │   │   ├── StudentProfile.jsx     # Profile & gamification badge scoreboard
-│   │   │   └── NotFound.jsx           # 404 handler
-│   │   ├── App.jsx                # Route registry
-│   │   └── main.jsx
-│   └── package.json
-└── README.md
+### 1. Clone the Repository
+```bash
+git clone https://github.com/patilritesh2006-lgtm/CampusConnect.git
+cd CampusConnect
 ```
 
 ---
 
-## ⚡ Getting Started
+### 2. Backend Setup
+```bash
+cd backend
+npm install
 
-### Prerequisites
-* **Node.js** (v18.x or higher)
-* **PostgreSQL** database running locally or via cloud (e.g. Supabase, Neon, Railway)
-* **npm** or **yarn**
+# Setup environment
+cp .env.example .env
 
----
+# Push schema to PostgreSQL database
+npx prisma db push
+npx prisma generate
 
-### 1. Backend Setup
+# Seed realistic demo data (Admin, Faculty, Coordinator, Students, Events)
+npm run seed
 
-1. Open your terminal and navigate to the `backend` folder:
-   ```bash
-   cd backend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Create a `.env` file in the `backend/` directory:
-   ```env
-   PORT=5000
-   DATABASE_URL="postgresql://username:password@localhost:5432/campusconnect?schema=public"
-   JWT_SECRET="your_secure_jwt_secret_key"
-   ```
-
-4. Push the Prisma schema to your database and generate the client:
-   ```bash
-   npx prisma db push
-   npx prisma generate
-   ```
-
-5. Start the backend development server:
-   ```bash
-   node server.js
-   ```
-   *The API will run on `http://localhost:5000`.*
+# Start Backend Server
+npm run dev
+```
+*Backend runs on `http://localhost:5000` (or `http://0.0.0.0:5000`).*
 
 ---
 
-### 2. Frontend Setup
+### 3. Frontend Setup
+```bash
+cd ../frontend
+npm install
 
-1. Open a new terminal and navigate to the `frontend` folder:
-   ```bash
-   cd frontend
-   ```
-
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
-
-3. Start the Vite development server:
-   ```bash
-   npm run dev
-   ```
-   *Open your browser at `http://localhost:5173`.*
+# Start Frontend Vite Server
+npm run dev
+```
+*Frontend runs on `http://localhost:5173`.*
 
 ---
 
-## 🔐 Default Login Credentials
+### 4. Running Automated Tests
+```bash
+cd backend
+# Run Security Suite
+npm test
 
-| Role | Email | Password | Access / Capabilities |
-| :--- | :--- | :--- | :--- |
-| **Admin** | `admin@campusconnect.com` | `admin123` | Event management, attendance marking, certificate generation, analytics, notice broadcasts. |
-| **Student** | `ritesh@gmail.com` *(or create new)* | `123456` | Event registration, certificate viewing/printing, notification alerts, profile & badges scoreboard. |
-| **Public Verification** | *(No login required)* | — | Visit `/verify-certificate` to verify any credential code. |
+# Run Master Suite (Phases 1 - 12 & 21)
+npm run test:master
+```
+*(All 24 automated tests will execute with 100% pass rate).*
 
 ---
 
-## 📡 API Reference Overview
+## 🔑 Demo Accounts (Password: `Password123!@#` for all)
+
+| Role | Email | Features |
+| :--- | :--- | :--- |
+| **Admin** | `admin@campusconnect.edu` | Full Analytics, Event Creation, Certificate Issuance, Notice Broadcasts |
+| **Faculty** | `faculty@campusconnect.edu` | Academic Events, Department Rosters, Attendance Tracking |
+| **Coordinator** | `coordinator@campusconnect.edu` | Live Rotating QR Projector, Attendance Management |
+| **Student** | `student@campusconnect.edu` *(User: `riteshpatil`)* | Student Dashboard 2.0, QR Scanner, AI Assistant, Certificates, Public Portfolio |
+
+---
+
+## 📱 Mobile LAN & PWA Testing
+
+1. Connect your PC and Mobile to the **same Wi-Fi**.
+2. Open your mobile browser and navigate to:
+   ```text
+   http://<YOUR_LOCAL_IP>:5173
+   ```
+3. Tap **"Add to Home Screen"** or **"Install App"** in Chrome / Safari to install CampusConnect as a native mobile app.
+
+---
+
+## 📡 REST API Summary
 
 ### Authentication & Users
-* `POST /api/auth/register` — Register a new student account
-* `POST /api/auth/login` — Login as student or admin (returns JWT)
-* `GET /api/users/profile` — Get authenticated student details & badge achievements
-* `PUT /api/users/profile` — Update student profile info
-* `PUT /api/users/change-password` — Change student account password
+* `POST /api/auth/register` — Register student/admin account (Zod validated)
+* `POST /api/auth/login` — Login with account lockout defense (dual-token)
+* `POST /api/auth/refresh` — Silent token refresh with token rotation
+* `POST /api/auth/logout` — Revoke single-device refresh token
+* `POST /api/auth/logout-all` — Revoke all device sessions globally
+* `GET  /api/auth/me` — Get authenticated user details
+* `GET  /api/users/portfolio/:username` — Public student portfolio (PII-safe)
+* `GET  /api/users/leaderboard` — Campus XP leaderboard
+* `PUT  /api/users/profile` — Update bio, skills, and portfolio visibility
 
-### Events
-* `GET /api/events` — Get all published college events
-* `POST /api/events` — Create a new event *(Admin only)*
-* `PUT /api/events/:id` — Update event details *(Admin only)*
-* `DELETE /api/events/:id` — Delete event *(Admin only)*
-* `GET /api/events/:id/students` — Get attendee roster with attendance status *(Admin only)*
-* `POST /api/events/:id/register` — Register for an event *(Student only)*
+### Events & Attendance
+* `GET  /api/events` — Get all events with category filters
+* `POST /api/events` — Create new event *(Admin/Coordinator)*
+* `GET  /api/attendance/events/:id/rotating-qr` — Live 30s rotating QR token *(Admin/Coordinator)*
+* `POST /api/attendance/checkin-qr` — Student QR scan attendance (+50 XP)
+* `POST /api/attendance/mark` — Toggle single student attendance
+* `POST /api/attendance/mark-all` — Bulk check-in
+* `GET  /api/attendance/events/:id/export-csv` — Export attendance roster CSV
 
-### Attendance & Certificates
-* `PUT /api/attendance/:eventId/user/:userId` — Toggle attendance (Present/Absent) *(Admin only)*
-* `POST /api/attendance/:eventId/bulk` — Bulk mark attendance *(Admin only)*
-* `POST /api/certificates/generate` — Generate digital certificate *(Admin only)*
-* `GET /api/certificates/my` — Get student's earned certificates *(Student only)*
-* `GET /api/certificates/all` — Get all issued certificates *(Admin only)*
-* `GET /api/certificates/verify/:code` — **Public** certificate verification
+### Certificates
+* `POST /api/certificates/issue` — Issue verified certificate (+100 XP)
+* `POST /api/certificates/bulk-issue` — Bulk issue certificates to attended students
+* `GET  /api/certificates/my-certificates` — Student earned certificates
+* `GET  /api/certificates/verify/:code` — **Public** certificate verification & LinkedIn link
 
-### Notifications & Announcements
-* `GET /api/notifications` — Get in-app notifications & unread count
-* `PUT /api/notifications/:id/read` — Mark notification as read
-* `PUT /api/notifications/read-all` — Mark all notifications as read
-* `GET /api/announcements` — Get all campus notices
-* `POST /api/announcements` — Publish notice with student broadcast *(Admin only)*
-* `DELETE /api/announcements/:id` — Delete notice *(Admin only)*
+### AI & Feedback
+* `GET  /api/ai/recommendations` — Personalized event match scores
+* `POST /api/ai/assistant` — Natural-language campus assistant
+* `POST /api/feedback/events/:id/feedback` — Submit 5-star review (+25 XP)
+* `GET  /api/feedback/events/:id/feedback` — Aggregated event ratings
 
-### Analytics
-* `GET /api/analytics/admin` — Get aggregate metrics, department stats, and top events *(Admin only)*
+### Health & Monitoring
+* `GET  /api/health` — DB latency, uptime, version, and memory status
 
 ---
 
