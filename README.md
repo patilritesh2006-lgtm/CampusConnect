@@ -1,4 +1,4 @@
-﻿# 🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform
+# 🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform
 
 [![CI/CD Pipeline](https://github.com/patilritesh2006-lgtm/CampusConnect/actions/workflows/ci.yml/badge.svg)](https://github.com/patilritesh2006-lgtm/CampusConnect/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -207,6 +207,9 @@ npm test
 ---
 
 ## 📡 REST API Summary
+
+> 📖 **Interactive Swagger / OpenAPI 3.0 Documentation**:  
+> When the backend server is running, visit **[http://localhost:5000/api-docs](http://localhost:5000/api-docs)** to inspect complete interactive request/response schemas, models, and test endpoints live via Swagger UI.
 
 ### Authentication & Users
 * `POST /api/auth/register` — Register student/admin account (Zod validated)

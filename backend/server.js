@@ -13,6 +13,8 @@ const cookieParser = require("cookie-parser");
 const prisma = require("./config/prisma");
 const { apiLimiter } = require("./middleware/rateLimiter");
 const { errorHandler } = require("./middleware/errorHandler");
+const swaggerUi = require("swagger-ui-express");
+const { swaggerSpec } = require("./config/swagger");
 
 const app = express();
 
@@ -21,7 +23,14 @@ const app = express();
 // ======================================================
 
 // Helmet for Secure HTTP Response Headers
-app.use(helmet());
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+  })
+);
+
+// Swagger OpenAPI Documentation
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Cookie Parser for HTTP-only JWT Refresh Tokens
 app.use(cookieParser());

@@ -1,4 +1,4 @@
-﻿const request = require("supertest");
+const request = require("supertest");
 const app = require("../server");
 const prisma = require("../config/prisma");
 
@@ -69,6 +69,12 @@ describe("👑 CampusConnect Master Integration Test Suite", () => {
       }
       await prisma.$disconnect();
     } catch (e) {}
+  });
+
+  it("GET /api-docs should serve Swagger OpenAPI documentation", async () => {
+    const res = await request(app).get("/api-docs/");
+    expect(res.status).toBe(200);
+    expect(res.text).toContain("Swagger UI");
   });
 
   it("RBAC: STUDENT should be blocked from Admin Analytics with 403", async () => {
