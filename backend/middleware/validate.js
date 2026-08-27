@@ -1,9 +1,9 @@
-const { ZodError } = require("zod");
+const { ZodError } = require('zod');
 
 /**
  * Validates req.body, req.query, or req.params against a Zod schema
  */
-const validate = (schema, source = "body") => {
+const validate = (schema, source = 'body') => {
   return async (req, res, next) => {
     try {
       const dataToValidate = req[source];
@@ -14,20 +14,20 @@ const validate = (schema, source = "body") => {
       const issues = error.issues || error.errors || [];
       if (issues.length > 0 || error instanceof ZodError) {
         const formattedErrors = issues.map((err) => ({
-          field: Array.isArray(err.path) ? err.path.join(".") : String(err.path || ""),
+          field: Array.isArray(err.path) ? err.path.join('.') : String(err.path || ''),
           message: err.message,
         }));
 
         return res.status(400).json({
           success: false,
-          message: formattedErrors[0]?.message || "Validation failed.",
+          message: formattedErrors[0]?.message || 'Validation failed.',
           errors: formattedErrors,
         });
       }
 
       return res.status(400).json({
         success: false,
-        message: error.message || "Invalid request payload.",
+        message: error.message || 'Invalid request payload.',
       });
     }
   };

@@ -1,10 +1,10 @@
-const prisma = require("../config/prisma");
+const prisma = require('../config/prisma');
 
 const getAnnouncements = async (req, res) => {
   try {
     const announcements = await prisma.announcement.findMany({
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
 
@@ -14,10 +14,10 @@ const getAnnouncements = async (req, res) => {
       announcements,
     });
   } catch (error) {
-    console.error("GET ANNOUNCEMENTS ERROR:", error);
+    console.error('GET ANNOUNCEMENTS ERROR:', error);
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch announcements.",
+      message: 'Failed to fetch announcements.',
       error: error.message,
     });
   }
@@ -30,7 +30,7 @@ const createAnnouncement = async (req, res) => {
     if (!title || !title.trim() || !content || !content.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Title and content are required.",
+        message: 'Title and content are required.',
       });
     }
 
@@ -38,14 +38,14 @@ const createAnnouncement = async (req, res) => {
       data: {
         title: title.trim(),
         content: content.trim(),
-        category: category || "GENERAL",
-        priority: priority || "NORMAL",
+        category: category || 'GENERAL',
+        priority: priority || 'NORMAL',
       },
     });
 
     // Broadcast in-app notification to all students
     const students = await prisma.user.findMany({
-      where: { role: "STUDENT" },
+      where: { role: 'STUDENT' },
       select: { id: true },
     });
 
@@ -53,24 +53,24 @@ const createAnnouncement = async (req, res) => {
       await prisma.notification.createMany({
         data: students.map((s) => ({
           userId: s.id,
-          title: "📢 Announcement: " + title.trim(),
-          message: content.trim().slice(0, 120) + (content.trim().length > 120 ? "..." : ""),
-          type: "ANNOUNCEMENT",
-          link: "/announcements",
+          title: '📢 Announcement: ' + title.trim(),
+          message: content.trim().slice(0, 120) + (content.trim().length > 120 ? '...' : ''),
+          type: 'ANNOUNCEMENT',
+          link: '/announcements',
         })),
       });
     }
 
     return res.status(201).json({
       success: true,
-      message: "Announcement published successfully.",
+      message: 'Announcement published successfully.',
       announcement,
     });
   } catch (error) {
-    console.error("CREATE ANNOUNCEMENT ERROR:", error);
+    console.error('CREATE ANNOUNCEMENT ERROR:', error);
     return res.status(500).json({
       success: false,
-      message: "Failed to create announcement.",
+      message: 'Failed to create announcement.',
       error: error.message,
     });
   }
@@ -86,13 +86,13 @@ const deleteAnnouncement = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Announcement deleted successfully.",
+      message: 'Announcement deleted successfully.',
     });
   } catch (error) {
-    console.error("DELETE ANNOUNCEMENT ERROR:", error);
+    console.error('DELETE ANNOUNCEMENT ERROR:', error);
     return res.status(500).json({
       success: false,
-      message: "Failed to delete announcement.",
+      message: 'Failed to delete announcement.',
       error: error.message,
     });
   }

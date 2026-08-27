@@ -1,120 +1,120 @@
-const { PrismaClient } = require("@prisma/client");
-const bcrypt = require("bcrypt");
+const { PrismaClient } = require('@prisma/client');
+const bcrypt = require('bcrypt');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log("🌱 Starting CampusConnect Database Seeding...\n");
+  console.log('🌱 Starting CampusConnect Database Seeding...\n');
 
   // 1. Create or Find College
   let college = await prisma.college.findFirst();
   if (!college) {
     college = await prisma.college.create({
       data: {
-        name: "National Institute of Engineering & Technology",
-        email: "admin@niet.edu",
+        name: 'National Institute of Engineering & Technology',
+        email: 'admin@niet.edu',
       },
     });
-    console.log("✅ Created College:", college.name);
+    console.log('✅ Created College:', college.name);
   }
 
   // Common Password Hash for Seed Accounts
-  const hashedPassword = await bcrypt.hash("Password123!@#", 10);
+  const hashedPassword = await bcrypt.hash('Password123!@#', 10);
 
   // 2. Seed SuperAdmin & Admin
   const adminUser = await prisma.user.upsert({
-    where: { email: "admin@campusconnect.edu" },
-    update: { isVerified: true, role: "ADMIN" },
+    where: { email: 'admin@campusconnect.edu' },
+    update: { isVerified: true, role: 'ADMIN' },
     create: {
-      fullName: "Dr. Rajesh Sharma (Dean)",
-      email: "admin@campusconnect.edu",
+      fullName: 'Dr. Rajesh Sharma (Dean)',
+      email: 'admin@campusconnect.edu',
       password: hashedPassword,
-      role: "ADMIN",
+      role: 'ADMIN',
       isVerified: true,
       collegeId: college.id,
     },
   });
-  console.log("✅ Seeded Admin User:", adminUser.email);
+  console.log('✅ Seeded Admin User:', adminUser.email);
 
   // 3. Seed Faculty
   const facultyUser = await prisma.user.upsert({
-    where: { email: "faculty@campusconnect.edu" },
-    update: { isVerified: true, role: "FACULTY" },
+    where: { email: 'faculty@campusconnect.edu' },
+    update: { isVerified: true, role: 'FACULTY' },
     create: {
-      fullName: "Prof. Sunita Rao (HOD CS)",
-      email: "faculty@campusconnect.edu",
+      fullName: 'Prof. Sunita Rao (HOD CS)',
+      email: 'faculty@campusconnect.edu',
       password: hashedPassword,
-      role: "FACULTY",
+      role: 'FACULTY',
       isVerified: true,
-      department: "Computer Science",
+      department: 'Computer Science',
       collegeId: college.id,
     },
   });
-  console.log("✅ Seeded Faculty User:", facultyUser.email);
+  console.log('✅ Seeded Faculty User:', facultyUser.email);
 
   // 4. Seed Event Coordinator
   const coordUser = await prisma.user.upsert({
-    where: { email: "coordinator@campusconnect.edu" },
-    update: { isVerified: true, role: "EVENT_COORDINATOR" },
+    where: { email: 'coordinator@campusconnect.edu' },
+    update: { isVerified: true, role: 'EVENT_COORDINATOR' },
     create: {
-      fullName: "Vikram Malhotra (Lead Organizer)",
-      email: "coordinator@campusconnect.edu",
+      fullName: 'Vikram Malhotra (Lead Organizer)',
+      email: 'coordinator@campusconnect.edu',
       password: hashedPassword,
-      role: "EVENT_COORDINATOR",
+      role: 'EVENT_COORDINATOR',
       isVerified: true,
-      department: "Information Technology",
+      department: 'Information Technology',
       collegeId: college.id,
     },
   });
-  console.log("✅ Seeded Coordinator User:", coordUser.email);
+  console.log('✅ Seeded Coordinator User:', coordUser.email);
 
   // 5. Seed Top Students with XP, Badges & Portfolios
   const studentsData = [
     {
-      fullName: "Ritesh Patil",
-      email: "student@campusconnect.edu",
-      username: "riteshpatil",
-      department: "Computer Science",
+      fullName: 'Ritesh Patil',
+      email: 'student@campusconnect.edu',
+      username: 'riteshpatil',
+      department: 'Computer Science',
       year: 3,
       xp: 450,
       level: 5,
-      bio: "Full Stack Engineer & AI Enthusiast. Building next-gen campus platforms and hackathon projects.",
-      skills: ["React", "Node.js", "TypeScript", "PostgreSQL", "Docker", "Python"],
-      githubUrl: "https://github.com/patilritesh2006-lgtm",
-      linkedinUrl: "https://linkedin.com",
+      bio: 'Full Stack Engineer & AI Enthusiast. Building next-gen campus platforms and hackathon projects.',
+      skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'Python'],
+      githubUrl: 'https://github.com/patilritesh2006-lgtm',
+      linkedinUrl: 'https://linkedin.com',
     },
     {
-      fullName: "Aarav Mehta",
-      email: "aarav@campusconnect.edu",
-      username: "aaravmehta",
-      department: "Information Technology",
+      fullName: 'Aarav Mehta',
+      email: 'aarav@campusconnect.edu',
+      username: 'aaravmehta',
+      department: 'Information Technology',
       year: 4,
       xp: 380,
       level: 4,
-      bio: "Competitive programmer & Cloud Architect. President of the University Coding Club.",
-      skills: ["Java", "AWS", "Kubernetes", "Algorithms", "Go"],
+      bio: 'Competitive programmer & Cloud Architect. President of the University Coding Club.',
+      skills: ['Java', 'AWS', 'Kubernetes', 'Algorithms', 'Go'],
     },
     {
-      fullName: "Priya Nair",
-      email: "priya@campusconnect.edu",
-      username: "priyanair",
-      department: "Data Science",
+      fullName: 'Priya Nair',
+      email: 'priya@campusconnect.edu',
+      username: 'priyanair',
+      department: 'Data Science',
       year: 2,
       xp: 310,
       level: 4,
-      bio: "Machine Learning researcher passionate about NLP and Computer Vision.",
-      skills: ["Python", "PyTorch", "Data Analysis", "SQL", "TensorFlow"],
+      bio: 'Machine Learning researcher passionate about NLP and Computer Vision.',
+      skills: ['Python', 'PyTorch', 'Data Analysis', 'SQL', 'TensorFlow'],
     },
     {
-      fullName: "Rohan Verma",
-      email: "rohan@campusconnect.edu",
-      username: "rohanverma",
-      department: "Electronics & Comm",
+      fullName: 'Rohan Verma',
+      email: 'rohan@campusconnect.edu',
+      username: 'rohanverma',
+      department: 'Electronics & Comm',
       year: 3,
       xp: 220,
       level: 3,
-      bio: "IoT Developer & Hardware Hacker. Building smart automated devices.",
-      skills: ["C++", "Embedded Systems", "Arduino", "Raspberry Pi"],
+      bio: 'IoT Developer & Hardware Hacker. Building smart automated devices.',
+      skills: ['C++', 'Embedded Systems', 'Arduino', 'Raspberry Pi'],
     },
   ];
 
@@ -139,7 +139,7 @@ async function main() {
       create: {
         ...s,
         password: hashedPassword,
-        role: "STUDENT",
+        role: 'STUDENT',
         isVerified: true,
         portfolioPublic: true,
         collegeId: college.id,
@@ -152,31 +152,31 @@ async function main() {
   // 6. Seed Events
   const eventsData = [
     {
-      title: "National Hackathon 2026",
-      description: "36-hour non-stop hackathon tackling AI, Web3, and Green Energy challenges with prize pool of ₹1,00,000.",
-      venue: "Main Campus Auditorium",
-      category: "Hackathon",
+      title: 'National Hackathon 2026',
+      description: '36-hour non-stop hackathon tackling AI, Web3, and Green Energy challenges with prize pool of ₹1,00,000.',
+      venue: 'Main Campus Auditorium',
+      category: 'Hackathon',
       capacity: 150,
       eventDate: new Date(Date.now() + 5 * 86400000), // in 5 days
-      status: "UPCOMING",
+      status: 'UPCOMING',
     },
     {
-      title: "Generative AI & LLM Masterclass",
-      description: "Hands-on workshop exploring prompt engineering, LangChain, RAG architecture, and fine-tuning with industry experts.",
-      venue: "CS Seminar Hall 2",
-      category: "Workshop",
+      title: 'Generative AI & LLM Masterclass',
+      description: 'Hands-on workshop exploring prompt engineering, LangChain, RAG architecture, and fine-tuning with industry experts.',
+      venue: 'CS Seminar Hall 2',
+      category: 'Workshop',
       capacity: 80,
       eventDate: new Date(Date.now() + 10 * 86400000), // in 10 days
-      status: "UPCOMING",
+      status: 'UPCOMING',
     },
     {
-      title: "Cloud Native DevOps Bootcamp",
-      description: "Comprehensive training on Docker containerization, CI/CD pipelines with GitHub Actions, and Kubernetes deployments.",
-      venue: "Virtual Google Meet",
-      category: "Bootcamp",
+      title: 'Cloud Native DevOps Bootcamp',
+      description: 'Comprehensive training on Docker containerization, CI/CD pipelines with GitHub Actions, and Kubernetes deployments.',
+      venue: 'Virtual Google Meet',
+      category: 'Bootcamp',
       capacity: 200,
       eventDate: new Date(Date.now() - 7 * 86400000), // 7 days ago
-      status: "COMPLETED",
+      status: 'COMPLETED',
     },
   ];
 
@@ -192,7 +192,7 @@ async function main() {
     }
 
     // Seed registrations & certificates for completed event
-    if (ev.status === "COMPLETED") {
+    if (ev.status === 'COMPLETED') {
       for (const student of createdStudents) {
         const reg = await prisma.registration.upsert({
           where: {
@@ -204,7 +204,7 @@ async function main() {
             eventId: ev.id,
             attended: true,
             attendanceMarkedAt: new Date(ev.eventDate),
-            checkinMethod: "QR_SCAN",
+            checkinMethod: 'QR_SCAN',
           },
         });
 
@@ -239,11 +239,11 @@ async function main() {
               userId: student.id,
               eventId: ev.id,
               rating: 5,
-              experience: "EXCELLENT",
+              experience: 'EXCELLENT',
               organization: 5,
               speakerQuality: 5,
               wouldRecommend: true,
-              comments: "Incredible hands-on session! Learned real-world DevOps practices.",
+              comments: 'Incredible hands-on session! Learned real-world DevOps practices.',
             },
           });
         }
@@ -269,14 +269,14 @@ async function main() {
   // 7. Seed Campus Announcements
   const announcements = [
     {
-      title: "🎉 National Hackathon 2026 Registrations Open!",
-      content: "Teams of 2-4 can now register for the National AI Hackathon. Free food, swag kits, and cash prizes!",
-      category: "Event",
+      title: '🎉 National Hackathon 2026 Registrations Open!',
+      content: 'Teams of 2-4 can now register for the National AI Hackathon. Free food, swag kits, and cash prizes!',
+      category: 'Event',
     },
     {
-      title: "📜 Digital Certificates Now Available for DevOps Bootcamp",
-      content: "All attendees of the Cloud Native DevOps Bootcamp can now download their verified certificates with QR authentication.",
-      category: "Academic",
+      title: '📜 Digital Certificates Now Available for DevOps Bootcamp',
+      content: 'All attendees of the Cloud Native DevOps Bootcamp can now download their verified certificates with QR authentication.',
+      category: 'Academic',
     },
   ];
 
@@ -288,25 +288,25 @@ async function main() {
           title: ann.title,
           content: ann.content,
           category: ann.category,
-          priority: "HIGH",
+          priority: 'HIGH',
         },
       });
     }
   }
 
-  console.log("\n🎉 Database Seeding Completed Successfully!");
-  console.log("--------------------------------------------------");
-  console.log("🔑 Demo Credentials (Password: Password123!@# for all):");
-  console.log("• Admin       : admin@campusconnect.edu");
-  console.log("• Faculty     : faculty@campusconnect.edu");
-  console.log("• Coordinator : coordinator@campusconnect.edu");
-  console.log("• Student     : student@campusconnect.edu (Username: riteshpatil)");
-  console.log("--------------------------------------------------\n");
+  console.log('\n🎉 Database Seeding Completed Successfully!');
+  console.log('--------------------------------------------------');
+  console.log('🔑 Demo Credentials (Password: Password123!@# for all):');
+  console.log('• Admin       : admin@campusconnect.edu');
+  console.log('• Faculty     : faculty@campusconnect.edu');
+  console.log('• Coordinator : coordinator@campusconnect.edu');
+  console.log('• Student     : student@campusconnect.edu (Username: riteshpatil)');
+  console.log('--------------------------------------------------\n');
 }
 
 main()
   .catch((e) => {
-    console.error("Seeding error:", e);
+    console.error('Seeding error:', e);
     process.exit(1);
   })
   .finally(async () => {

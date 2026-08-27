@@ -1,4 +1,4 @@
-const prisma = require("../config/prisma");
+const prisma = require('../config/prisma');
 
 // ======================================================
 // GET ALL STUDENTS
@@ -7,11 +7,11 @@ const prisma = require("../config/prisma");
 
 const getAllStudents = async (req, res) => {
   try {
-    console.log("========== GET ALL STUDENTS ==========");
+    console.log('========== GET ALL STUDENTS ==========');
 
     const students = await prisma.user.findMany({
       where: {
-        role: "STUDENT",
+        role: 'STUDENT',
       },
       select: {
         id: true,
@@ -37,13 +37,13 @@ const getAllStudents = async (req, res) => {
             },
           },
           orderBy: {
-            createdAt: "desc",
+            createdAt: 'desc',
           },
         },
       },
 
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
 
@@ -72,13 +72,13 @@ const getAllStudents = async (req, res) => {
       students: formattedStudents,
     });
   } catch (error) {
-    console.error("========== GET STUDENTS ERROR ==========");
+    console.error('========== GET STUDENTS ERROR ==========');
     console.error(error);
-    console.error("========================================");
+    console.error('========================================');
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch students.",
+      message: 'Failed to fetch students.',
       error: error.message,
     });
   }
@@ -93,13 +93,13 @@ const getStudentById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    console.log("========== GET STUDENT ==========");
-    console.log("Student ID:", id);
+    console.log('========== GET STUDENT ==========');
+    console.log('Student ID:', id);
 
     const student = await prisma.user.findFirst({
       where: {
         id,
-        role: "STUDENT",
+        role: 'STUDENT',
       },
 
       select: {
@@ -128,7 +128,7 @@ const getStudentById = async (req, res) => {
           },
 
           orderBy: {
-            createdAt: "desc",
+            createdAt: 'desc',
           },
         },
       },
@@ -137,7 +137,7 @@ const getStudentById = async (req, res) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student not found.",
+        message: 'Student not found.',
       });
     }
 
@@ -158,13 +158,13 @@ const getStudentById = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error("========== GET STUDENT ERROR ==========");
+    console.error('========== GET STUDENT ERROR ==========');
     console.error(error);
-    console.error("=======================================");
+    console.error('=======================================');
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch student.",
+      message: 'Failed to fetch student.',
       error: error.message,
     });
   }

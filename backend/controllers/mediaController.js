@@ -1,4 +1,4 @@
-﻿const prisma = require("../config/prisma");
+﻿const prisma = require('../config/prisma');
 
 // ======================================================
 // UPLOAD / ADD MEDIA ITEM TO EVENT
@@ -11,7 +11,7 @@ const addEventMedia = async (req, res, next) => {
     if (!mediaUrl) {
       return res.status(400).json({
         success: false,
-        message: "Media URL is required.",
+        message: 'Media URL is required.',
       });
     }
 
@@ -22,7 +22,7 @@ const addEventMedia = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -30,7 +30,7 @@ const addEventMedia = async (req, res, next) => {
       data: {
         eventId,
         mediaUrl,
-        mediaType: mediaType || "IMAGE",
+        mediaType: mediaType || 'IMAGE',
         caption: caption?.trim() || null,
         uploadedBy: req.user.fullName,
       },
@@ -38,7 +38,7 @@ const addEventMedia = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "Media added to event gallery successfully.",
+      message: 'Media added to event gallery successfully.',
       media,
     });
   } catch (error) {
@@ -55,7 +55,7 @@ const getEventMedia = async (req, res, next) => {
 
     const media = await prisma.eventMedia.findMany({
       where: { eventId },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     return res.status(200).json({

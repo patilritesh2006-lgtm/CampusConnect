@@ -1,5 +1,5 @@
-﻿const prisma = require("../config/prisma");
-const { generateEventQRToken, verifyEventQRToken } = require("../utils/qrService");
+﻿const prisma = require('../config/prisma');
+const { generateEventQRToken, verifyEventQRToken } = require('../utils/qrService');
 
 // ======================================================
 // GET ROTATING QR FOR EVENT (Admin / Coordinator)
@@ -16,7 +16,7 @@ const getRotatingQR = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -43,7 +43,7 @@ const checkInQR = async (req, res, next) => {
     if (!eventId || !qrToken) {
       return res.status(400).json({
         success: false,
-        message: "Event ID and QR token are required.",
+        message: 'Event ID and QR token are required.',
       });
     }
 
@@ -64,11 +64,11 @@ const checkInQR = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
-    if (event.status === "COMPLETED" || event.status === "CANCELLED") {
+    if (event.status === 'COMPLETED' || event.status === 'CANCELLED') {
       return res.status(400).json({
         success: false,
         message: `Check-in closed. Event is marked as ${event.status}.`,
@@ -88,14 +88,14 @@ const checkInQR = async (req, res, next) => {
     if (!registration) {
       return res.status(404).json({
         success: false,
-        message: "You are not registered for this event.",
+        message: 'You are not registered for this event.',
       });
     }
 
     if (registration.attended) {
       return res.status(400).json({
         success: false,
-        message: "You have already checked in for this event.",
+        message: 'You have already checked in for this event.',
       });
     }
 
@@ -106,8 +106,8 @@ const checkInQR = async (req, res, next) => {
         data: {
           attended: true,
           attendanceMarkedAt: new Date(),
-          checkinMethod: "QR_SCAN",
-          deviceInfo: req.headers["user-agent"] || null,
+          checkinMethod: 'QR_SCAN',
+          deviceInfo: req.headers['user-agent'] || null,
         },
       });
 
@@ -135,8 +135,8 @@ const checkInQR = async (req, res, next) => {
           userId: studentId,
           title: `Attendance Confirmed: ${event.title}`,
           message: `Your check-in for "${event.title}" has been verified! +50 XP awarded.`,
-          type: "INFO",
-          link: "/student-certificates",
+          type: 'INFO',
+          link: '/student-certificates',
         },
       });
 
@@ -145,7 +145,7 @@ const checkInQR = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Attendance verified successfully! +50 XP earned.",
+      message: 'Attendance verified successfully! +50 XP earned.',
       registration: updated,
     });
   } catch (error) {
@@ -163,7 +163,7 @@ const markAttendance = async (req, res, next) => {
     if (!registrationId) {
       return res.status(400).json({
         success: false,
-        message: "Registration ID is required.",
+        message: 'Registration ID is required.',
       });
     }
 
@@ -172,7 +172,7 @@ const markAttendance = async (req, res, next) => {
       data: {
         attended: attended ?? true,
         attendanceMarkedAt: attended ? new Date() : null,
-        checkinMethod: attended ? "MANUAL" : null,
+        checkinMethod: attended ? 'MANUAL' : null,
       },
       include: {
         user: true,
@@ -186,15 +186,15 @@ const markAttendance = async (req, res, next) => {
           userId: reg.userId,
           title: `Attendance Verified: ${reg.event.title}`,
           message: `Your attendance for "${reg.event.title}" was recorded by the organizer.`,
-          type: "INFO",
-          link: "/student-certificates",
+          type: 'INFO',
+          link: '/student-certificates',
         },
       });
     }
 
     return res.status(200).json({
       success: true,
-      message: `Attendance marked as ${attended ? "PRESENT" : "ABSENT"}.`,
+      message: `Attendance marked as ${attended ? 'PRESENT' : 'ABSENT'}.`,
       registration: reg,
     });
   } catch (error) {
@@ -212,7 +212,7 @@ const markAllAttended = async (req, res, next) => {
     if (!eventId) {
       return res.status(400).json({
         success: false,
-        message: "Event ID is required.",
+        message: 'Event ID is required.',
       });
     }
 
@@ -221,7 +221,7 @@ const markAllAttended = async (req, res, next) => {
       data: {
         attended: true,
         attendanceMarkedAt: new Date(),
-        checkinMethod: "BULK",
+        checkinMethod: 'BULK',
       },
     });
 
@@ -250,7 +250,7 @@ const exportCSV = async (req, res, next) => {
             user: true,
             certificate: true,
           },
-          orderBy: { createdAt: "asc" },
+          orderBy: { createdAt: 'asc' },
         },
       },
     });
@@ -258,30 +258,30 @@ const exportCSV = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
     // Generate CSV String
-    let csv = "Student Name,Email,Department,Year,Status,Checkin Method,Checked In At,Certificate Code\n";
+    let csv = 'Student Name,Email,Department,Year,Status,Checkin Method,Checked In At,Certificate Code\n';
 
     for (const reg of event.registrations) {
       const name = `"${reg.user.fullName.replace(/"/g, '""')}"`;
       const email = `"${reg.user.email}"`;
-      const dept = `"${reg.user.department || "N/A"}"`;
-      const year = reg.user.year || "N/A";
-      const status = reg.attended ? "PRESENT" : "ABSENT";
-      const method = reg.checkinMethod || "N/A";
-      const time = reg.attendanceMarkedAt ? new Date(reg.attendanceMarkedAt).toISOString() : "N/A";
-      const cert = reg.certificate ? reg.certificate.certificateCode : "N/A";
+      const dept = `"${reg.user.department || 'N/A'}"`;
+      const year = reg.user.year || 'N/A';
+      const status = reg.attended ? 'PRESENT' : 'ABSENT';
+      const method = reg.checkinMethod || 'N/A';
+      const time = reg.attendanceMarkedAt ? new Date(reg.attendanceMarkedAt).toISOString() : 'N/A';
+      const cert = reg.certificate ? reg.certificate.certificateCode : 'N/A';
 
       csv += `${name},${email},${dept},${year},${status},${method},${time},${cert}\n`;
     }
 
-    res.setHeader("Content-Type", "text/csv");
+    res.setHeader('Content-Type', 'text/csv');
     res.setHeader(
-      "Content-Disposition",
-      `attachment; filename="Attendance_${event.title.replace(/[^a-zA-Z0-9]/g, "_")}.csv"`
+      'Content-Disposition',
+      `attachment; filename="Attendance_${event.title.replace(/[^a-zA-Z0-9]/g, '_')}.csv"`
     );
 
     return res.status(200).send(csv);

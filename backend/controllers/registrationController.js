@@ -1,4 +1,4 @@
-const prisma = require("../config/prisma");
+const prisma = require('../config/prisma');
 
 // ======================================================
 // REGISTER FOR EVENT
@@ -8,7 +8,7 @@ const prisma = require("../config/prisma");
 
 const registerForEvent = async (req, res) => {
   try {
-    console.log("========== REGISTER EVENT ==========");
+    console.log('========== REGISTER EVENT ==========');
 
     const targetUserId = req.user?.id || req.body.user_id || req.body.userId;
     const targetEventId = req.body.eventId || req.body.event_id;
@@ -17,7 +17,7 @@ const registerForEvent = async (req, res) => {
     if (!targetUserId || !targetEventId) {
       return res.status(400).json({
         success: false,
-        message: "User ID and Event ID are required.",
+        message: 'User ID and Event ID are required.',
       });
     }
 
@@ -34,7 +34,7 @@ const registerForEvent = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found.",
+        message: 'User not found.',
       });
     }
 
@@ -51,7 +51,7 @@ const registerForEvent = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -65,7 +65,7 @@ const registerForEvent = async (req, res) => {
       if (currentCount >= event.capacity) {
         return res.status(400).json({
           success: false,
-          message: "Event is at full capacity.",
+          message: 'Event is at full capacity.',
         });
       }
     }
@@ -86,7 +86,7 @@ const registerForEvent = async (req, res) => {
     if (existing) {
       return res.status(400).json({
         success: false,
-        message: "Already registered for this event.",
+        message: 'Already registered for this event.',
       });
     }
 
@@ -104,20 +104,20 @@ const registerForEvent = async (req, res) => {
       },
     });
 
-    console.log("Registration created:", registration);
+    console.log('Registration created:', registration);
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful.",
+      message: 'Registration successful.',
       registration,
     });
   } catch (error) {
-    console.error("========== REGISTER EVENT ERROR ==========");
+    console.error('========== REGISTER EVENT ERROR ==========');
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to register for event.",
+      message: 'Failed to register for event.',
       error: error.message,
     });
   }
@@ -131,26 +131,26 @@ const registerForEvent = async (req, res) => {
 
 const getMyRegistrations = async (req, res) => {
   try {
-    console.log("========== GET MY REGISTRATIONS ==========");
+    console.log('========== GET MY REGISTRATIONS ==========');
 
     const { user_id } = req.params;
 
     if (!user_id) {
       return res.status(400).json({
         success: false,
-        message: "User ID is required.",
+        message: 'User ID is required.',
       });
     }
 
     // Ensure student only accesses their own registrations
     if (
       req.user &&
-      req.user.role !== "ADMIN" &&
+      req.user.role !== 'ADMIN' &&
       req.user.id !== user_id
     ) {
       return res.status(403).json({
         success: false,
-        message: "Access denied. You can only view your own registrations.",
+        message: 'Access denied. You can only view your own registrations.',
       });
     }
 
@@ -171,7 +171,7 @@ const getMyRegistrations = async (req, res) => {
         certificate: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
 
@@ -181,12 +181,12 @@ const getMyRegistrations = async (req, res) => {
       registrations,
     });
   } catch (error) {
-    console.error("========== GET MY REGISTRATIONS ERROR ==========");
+    console.error('========== GET MY REGISTRATIONS ERROR ==========');
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch registrations.",
+      message: 'Failed to fetch registrations.',
       error: error.message,
     });
   }
@@ -201,7 +201,7 @@ const cancelRegistration = async (req, res) => {
   try {
     const { registrationId } = req.params;
     const userId = req.user.id;
-    const isAdmin = req.user.role === "ADMIN";
+    const isAdmin = req.user.role === 'ADMIN';
 
     const registration = await prisma.registration.findUnique({
       where: { id: registrationId },
@@ -211,14 +211,14 @@ const cancelRegistration = async (req, res) => {
     if (!registration) {
       return res.status(404).json({
         success: false,
-        message: "Registration not found.",
+        message: 'Registration not found.',
       });
     }
 
     if (!isAdmin && registration.userId !== userId) {
       return res.status(403).json({
         success: false,
-        message: "You can only cancel your own registration.",
+        message: 'You can only cancel your own registration.',
       });
     }
 
@@ -230,22 +230,22 @@ const cancelRegistration = async (req, res) => {
     await prisma.notification.create({
       data: {
         userId: registration.userId,
-        title: "Registration Cancelled",
+        title: 'Registration Cancelled',
         message: `Your registration for "${registration.event.title}" has been cancelled.`,
-        type: "ALERT",
-        link: "/student-events",
+        type: 'ALERT',
+        link: '/student-events',
       },
     });
 
     return res.status(200).json({
       success: true,
-      message: "Registration cancelled successfully.",
+      message: 'Registration cancelled successfully.',
     });
   } catch (error) {
-    console.error("CANCEL REGISTRATION ERROR:", error);
+    console.error('CANCEL REGISTRATION ERROR:', error);
     return res.status(500).json({
       success: false,
-      message: "Failed to cancel registration.",
+      message: 'Failed to cancel registration.',
       error: error.message,
     });
   }

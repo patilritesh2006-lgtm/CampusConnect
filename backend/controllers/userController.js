@@ -1,4 +1,4 @@
-﻿const prisma = require("../config/prisma");
+﻿const prisma = require('../config/prisma');
 
 // ======================================================
 // GET PUBLIC STUDENT DIGITAL PORTFOLIO (No sensitive PII)
@@ -10,14 +10,14 @@ const getPublicPortfolio = async (req, res, next) => {
     if (!username) {
       return res.status(400).json({
         success: false,
-        message: "Username is required.",
+        message: 'Username is required.',
       });
     }
 
     const student = await prisma.user.findFirst({
       where: {
-        username: { equals: username.trim(), mode: "insensitive" },
-        role: "STUDENT",
+        username: { equals: username.trim(), mode: 'insensitive' },
+        role: 'STUDENT',
       },
       select: {
         id: true,
@@ -47,7 +47,7 @@ const getPublicPortfolio = async (req, res, next) => {
               },
             },
           },
-          orderBy: { issueDate: "desc" },
+          orderBy: { issueDate: 'desc' },
         },
         registrations: {
           where: { attended: true },
@@ -63,7 +63,7 @@ const getPublicPortfolio = async (req, res, next) => {
               },
             },
           },
-          orderBy: { createdAt: "desc" },
+          orderBy: { createdAt: 'desc' },
         },
       },
     });
@@ -71,7 +71,7 @@ const getPublicPortfolio = async (req, res, next) => {
     if (!student) {
       return res.status(404).json({
         success: false,
-        message: "Student portfolio not found.",
+        message: 'Student portfolio not found.',
       });
     }
 
@@ -88,39 +88,39 @@ const getPublicPortfolio = async (req, res, next) => {
 
     const badges = [
       {
-        id: "active-participant",
-        name: "Active Participant",
-        description: "Registered & attended campus activities",
+        id: 'active-participant',
+        name: 'Active Participant',
+        description: 'Registered & attended campus activities',
         unlocked: totalAttended >= 1,
-        icon: "🎯",
+        icon: '🎯',
       },
       {
-        id: "event-explorer",
-        name: "Event Explorer",
-        description: "Participated in 3+ college events",
+        id: 'event-explorer',
+        name: 'Event Explorer',
+        description: 'Participated in 3+ college events',
         unlocked: totalAttended >= 3,
-        icon: "🚀",
+        icon: '🚀',
       },
       {
-        id: "event-champion",
-        name: "Campus Champion",
-        description: "Attended 5+ campus events",
+        id: 'event-champion',
+        name: 'Campus Champion',
+        description: 'Attended 5+ campus events',
         unlocked: totalAttended >= 5,
-        icon: "🥇",
+        icon: '🥇',
       },
       {
-        id: "certified-scholar",
-        name: "Certified Scholar",
-        description: "Earned official verified certificates",
+        id: 'certified-scholar',
+        name: 'Certified Scholar',
+        description: 'Earned official verified certificates',
         unlocked: totalCertificates >= 1,
-        icon: "📜",
+        icon: '📜',
       },
       {
-        id: "master-achiever",
-        name: "Master Achiever",
-        description: "Reached Level 5+ in CampusConnect",
+        id: 'master-achiever',
+        name: 'Master Achiever',
+        description: 'Reached Level 5+ in CampusConnect',
         unlocked: student.level >= 5,
-        icon: "⭐",
+        icon: '⭐',
       },
     ];
 
@@ -128,9 +128,9 @@ const getPublicPortfolio = async (req, res, next) => {
       success: true,
       portfolio: {
         fullName: student.fullName,
-        department: student.department || "Student",
+        department: student.department || 'Student',
         year: student.year,
-        bio: student.bio || "Active CampusConnect student community member.",
+        bio: student.bio || 'Active CampusConnect student community member.',
         skills: student.skills || [],
         xp: student.xp,
         level: student.level,
@@ -156,7 +156,7 @@ const getPublicPortfolio = async (req, res, next) => {
 const getLeaderboard = async (req, res, next) => {
   try {
     const topStudents = await prisma.user.findMany({
-      where: { role: "STUDENT" },
+      where: { role: 'STUDENT' },
       select: {
         id: true,
         fullName: true,
@@ -167,7 +167,7 @@ const getLeaderboard = async (req, res, next) => {
         registrations: { where: { attended: true } },
         certificates: true,
       },
-      orderBy: [{ xp: "desc" }, { level: "desc" }],
+      orderBy: [{ xp: 'desc' }, { level: 'desc' }],
       take: 20,
     });
 
@@ -176,7 +176,7 @@ const getLeaderboard = async (req, res, next) => {
       id: s.id,
       fullName: s.fullName,
       username: s.username,
-      department: s.department || "General",
+      department: s.department || 'General',
       xp: s.xp,
       level: s.level,
       attendedCount: s.registrations.length,
@@ -224,7 +224,7 @@ const updateProfile = async (req, res, next) => {
       if (existingUser) {
         return res.status(409).json({
           success: false,
-          message: "Username is already taken. Please choose another.",
+          message: 'Username is already taken. Please choose another.',
         });
       }
     }
@@ -264,7 +264,7 @@ const updateProfile = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Profile updated successfully.",
+      message: 'Profile updated successfully.',
       user: updated,
     });
   } catch (error) {

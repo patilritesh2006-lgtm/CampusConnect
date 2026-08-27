@@ -8,17 +8,17 @@ const notFoundHandler = (req, res, next) => {
 };
 
 const errorHandler = (err, req, res, next) => {
-  const isDev = process.env.NODE_ENV === "development";
+  const isDev = process.env.NODE_ENV === 'development';
 
   if (res.headersSent) {
     return next(err);
   }
 
   const statusCode = err.statusCode || err.status || 500;
-  const message = err.message || "An unexpected internal server error occurred.";
+  const message = err.message || 'An unexpected internal server error occurred.';
 
   if (statusCode >= 500) {
-    console.error("❌ [SERVER ERROR]:", err);
+    console.error('❌ [SERVER ERROR]:', err);
   }
 
   return res.status(statusCode).json({

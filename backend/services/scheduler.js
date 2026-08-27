@@ -1,14 +1,14 @@
-﻿const cron = require("node-cron");
-const prisma = require("../config/prisma");
+﻿const cron = require('node-cron');
+const prisma = require('../config/prisma');
 
 /**
  * Initializes the automated reminder and maintenance scheduler
  */
 const initScheduler = () => {
-  console.log("⏰ [SCHEDULER] CampusConnect Event Reminder Service initialized.");
+  console.log('⏰ [SCHEDULER] CampusConnect Event Reminder Service initialized.');
 
   // Runs every 15 minutes to check for upcoming events
-  cron.schedule("*/15 * * * *", async () => {
+  cron.schedule('*/15 * * * *', async () => {
     try {
       const now = new Date();
       const next24h = new Date(now.getTime() + 24 * 60 * 60 * 1000);
@@ -24,7 +24,7 @@ const initScheduler = () => {
             gte: next24h,
             lt: next24hPlus15m,
           },
-          status: "UPCOMING",
+          status: 'UPCOMING',
         },
         include: {
           registrations: {
@@ -49,8 +49,8 @@ const initScheduler = () => {
                 userId: reg.userId,
                 title: `Reminder: ${event.title} is tomorrow!`,
                 message: `Your registered event "${event.title}" is happening tomorrow at ${event.venue}. Be on time!`,
-                type: "REMINDER",
-                link: `/student-events`,
+                type: 'REMINDER',
+                link: '/student-events',
               },
             });
           }
@@ -64,7 +64,7 @@ const initScheduler = () => {
             gte: next1h,
             lt: next1hPlus15m,
           },
-          status: "UPCOMING",
+          status: 'UPCOMING',
         },
         include: {
           registrations: {
@@ -88,15 +88,15 @@ const initScheduler = () => {
                 userId: reg.userId,
                 title: `Starting Soon: ${event.title}`,
                 message: `"${event.title}" starts in 1 hour at ${event.venue}. Have your QR pass ready!`,
-                type: "ALERT",
-                link: `/student-events`,
+                type: 'ALERT',
+                link: '/student-events',
               },
             });
           }
         }
       }
     } catch (error) {
-      console.error("Scheduler run error:", error);
+      console.error('Scheduler run error:', error);
     }
   });
 };

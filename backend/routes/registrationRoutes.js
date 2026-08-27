@@ -1,4 +1,4 @@
-const express = require("express");
+const express = require('express');
 
 const router = express.Router();
 
@@ -6,15 +6,15 @@ const {
   registerForEvent,
   getMyRegistrations,
   cancelRegistration,
-} = require("../controllers/registrationController");
+} = require('../controllers/registrationController');
 
 const {
   authenticateToken,
   requireStudent,
-} = require("../middleware/authMiddleware");
+} = require('../middleware/authMiddleware');
 
-const { validate } = require("../middleware/validate");
-const { createRegistrationSchema } = require("../validators/registrationSchemas");
+const { validate } = require('../middleware/validate');
+const { createRegistrationSchema } = require('../validators/registrationSchemas');
 
 // ======================================================
 // REGISTER FOR EVENT
@@ -23,7 +23,7 @@ const { createRegistrationSchema } = require("../validators/registrationSchemas"
 // ======================================================
 
 router.post(
-  "/",
+  '/',
   authenticateToken,
   requireStudent,
   validate(createRegistrationSchema),
@@ -37,7 +37,7 @@ router.post(
 // ======================================================
 
 router.get(
-  "/:user_id",
+  '/:user_id',
   authenticateToken,
   requireStudent,
   getMyRegistrations
@@ -49,7 +49,7 @@ router.get(
 // ======================================================
 
 router.delete(
-  "/:registrationId",
+  '/:registrationId',
   authenticateToken,
   cancelRegistration
 );

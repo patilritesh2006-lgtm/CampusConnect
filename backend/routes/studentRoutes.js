@@ -1,16 +1,16 @@
-const express = require("express");
+const express = require('express');
 
 const router = express.Router();
 
 const {
   getAllStudents,
   getStudentById,
-} = require("../controllers/studentController");
+} = require('../controllers/studentController');
 
 const {
   authenticateToken,
   requireAdmin,
-} = require("../middleware/authMiddleware");
+} = require('../middleware/authMiddleware');
 
 // ======================================================
 // ADMIN STUDENT ROUTES
@@ -18,7 +18,7 @@ const {
 
 // Get all students
 router.get(
-  "/",
+  '/',
   authenticateToken,
   requireAdmin,
   getAllStudents
@@ -26,7 +26,7 @@ router.get(
 
 // Get single student
 router.get(
-  "/:id",
+  '/:id',
   authenticateToken,
   requireAdmin,
   getStudentById

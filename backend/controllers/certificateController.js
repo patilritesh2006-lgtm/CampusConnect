@@ -1,5 +1,5 @@
-﻿const prisma = require("../config/prisma");
-const crypto = require("crypto");
+﻿const prisma = require('../config/prisma');
+const crypto = require('crypto');
 
 /**
  * Generate a unique collision-free cryptographic Certificate Code
@@ -8,10 +8,10 @@ const crypto = require("crypto");
 const generateCertificateCode = (eventTitle) => {
   const year = new Date().getFullYear();
   const cleanTitle = eventTitle
-    .replace(/[^a-zA-Z0-9]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, '')
     .substring(0, 4)
     .toUpperCase();
-  const randomHex = crypto.randomBytes(3).toString("hex").toUpperCase();
+  const randomHex = crypto.randomBytes(3).toString('hex').toUpperCase();
   return `CC-${year}-${cleanTitle}-${randomHex}`;
 };
 
@@ -25,7 +25,7 @@ const issueCertificate = async (req, res, next) => {
     if (!registrationId) {
       return res.status(400).json({
         success: false,
-        message: "Registration ID is required.",
+        message: 'Registration ID is required.',
       });
     }
 
@@ -41,21 +41,21 @@ const issueCertificate = async (req, res, next) => {
     if (!reg) {
       return res.status(404).json({
         success: false,
-        message: "Registration record not found.",
+        message: 'Registration record not found.',
       });
     }
 
     if (!reg.attended) {
       return res.status(400).json({
         success: false,
-        message: "Cannot issue certificate. Student has not attended this event.",
+        message: 'Cannot issue certificate. Student has not attended this event.',
       });
     }
 
     if (reg.certificate) {
       return res.status(400).json({
         success: false,
-        message: "Certificate has already been issued for this registration.",
+        message: 'Certificate has already been issued for this registration.',
         certificate: reg.certificate,
       });
     }
@@ -89,8 +89,8 @@ const issueCertificate = async (req, res, next) => {
           userId: reg.userId,
           title: `Certificate Issued: ${reg.event.title}`,
           message: `Congratulations! Your certificate of participation for "${reg.event.title}" is ready to view & download. (+100 XP awarded)`,
-          type: "CERTIFICATE",
-          link: "/student-certificates",
+          type: 'CERTIFICATE',
+          link: '/student-certificates',
         },
       });
 
@@ -99,7 +99,7 @@ const issueCertificate = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "Certificate issued successfully.",
+      message: 'Certificate issued successfully.',
       certificate,
     });
   } catch (error) {
@@ -117,7 +117,7 @@ const bulkIssueCertificates = async (req, res, next) => {
     if (!eventId) {
       return res.status(400).json({
         success: false,
-        message: "Event ID is required.",
+        message: 'Event ID is required.',
       });
     }
 
@@ -128,7 +128,7 @@ const bulkIssueCertificates = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -168,8 +168,8 @@ const bulkIssueCertificates = async (req, res, next) => {
           userId: reg.userId,
           title: `Certificate Ready: ${event.title}`,
           message: `Your verified certificate for "${event.title}" is now available on your dashboard!`,
-          type: "CERTIFICATE",
-          link: "/student-certificates",
+          type: 'CERTIFICATE',
+          link: '/student-certificates',
         },
       });
 
@@ -203,7 +203,7 @@ const getMyCertificates = async (req, res, next) => {
           select: { id: true, fullName: true, email: true, department: true },
         },
       },
-      orderBy: { issueDate: "desc" },
+      orderBy: { issueDate: 'desc' },
     });
 
     return res.status(200).json({
@@ -225,7 +225,7 @@ const verifyCertificate = async (req, res, next) => {
     if (!code) {
       return res.status(400).json({
         success: false,
-        message: "Certificate code is required.",
+        message: 'Certificate code is required.',
       });
     }
 
@@ -251,17 +251,17 @@ const verifyCertificate = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         valid: false,
-        message: "No authentic record found for this certificate code.",
+        message: 'No authentic record found for this certificate code.',
       });
     }
 
     // Build LinkedIn Add-To-Profile URL
-    const clientBaseUrl = process.env.CLIENT_BASE_URL || "http://localhost:5173";
+    const clientBaseUrl = process.env.CLIENT_BASE_URL || 'http://localhost:5173';
     const certUrl = `${clientBaseUrl}/verify-certificate/${certificate.certificateCode}`;
     const issueYear = new Date(certificate.issueDate).getFullYear();
     const issueMonth = new Date(certificate.issueDate).getMonth() + 1;
     const certName = encodeURIComponent(`${certificate.event.title} - Certificate of Participation`);
-    const orgName = encodeURIComponent(certificate.event.college?.name || "CampusConnect");
+    const orgName = encodeURIComponent(certificate.event.college?.name || 'CampusConnect');
 
     const linkedInShareUrl = `https://www.linkedin.com/profile/add?startTask=CERTIFICATION_NAME&name=${certName}&organizationName=${orgName}&issueYear=${issueYear}&issueMonth=${issueMonth}&certUrl=${encodeURIComponent(certUrl)}&certId=${certificate.certificateCode}`;
 
@@ -277,7 +277,7 @@ const verifyCertificate = async (req, res, next) => {
         eventCategory: certificate.event.category,
         eventDate: certificate.event.eventDate,
         venue: certificate.event.venue,
-        collegeName: certificate.event.college?.name || "CampusConnect Institution",
+        collegeName: certificate.event.college?.name || 'CampusConnect Institution',
         issueDate: certificate.issueDate,
         linkedInShareUrl,
         verificationUrl: certUrl,
@@ -298,7 +298,7 @@ const getAllCertificates = async (req, res, next) => {
         user: { select: { id: true, fullName: true, email: true, department: true } },
         event: { select: { id: true, title: true, eventDate: true, category: true } },
       },
-      orderBy: { issueDate: "desc" },
+      orderBy: { issueDate: 'desc' },
     });
 
     return res.status(200).json({

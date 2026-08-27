@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useParams, Link } from "react-router-dom";
 import API from "../api/api";
 import {
@@ -12,8 +12,6 @@ import {
   ShieldCheck,
   Sparkles,
   Trophy,
-  User,
-  ArrowLeft,
 } from "lucide-react";
 
 export default function StudentPortfolio() {
@@ -22,11 +20,7 @@ export default function StudentPortfolio() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    fetchPortfolio();
-  }, [username]);
-
-  const fetchPortfolio = async () => {
+  const fetchPortfolio = useCallback(async () => {
     try {
       setLoading(true);
       const res = await API.get(`/users/portfolio/${username}`);
@@ -40,7 +34,11 @@ export default function StudentPortfolio() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [username]);
+
+  useEffect(() => {
+    fetchPortfolio();
+  }, [fetchPortfolio]);
 
   if (loading) {
     return (

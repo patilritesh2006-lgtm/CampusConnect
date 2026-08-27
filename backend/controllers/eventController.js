@@ -1,12 +1,12 @@
-const prisma = require("../config/prisma");
+const prisma = require('../config/prisma');
 
 // ======================================================
 // CREATE EVENT
 // ======================================================
 const createEvent = async (req, res) => {
   try {
-    console.log("========== CREATE EVENT ==========");
-    console.log("Request body:", req.body);
+    console.log('========== CREATE EVENT ==========');
+    console.log('Request body:', req.body);
 
     const {
       title,
@@ -25,17 +25,17 @@ const createEvent = async (req, res) => {
     if (!title || !title.trim() || !venue || !venue.trim() || (!event_date && !eventDate)) {
       return res.status(400).json({
         success: false,
-        message: "Title, venue and event date are required.",
+        message: 'Title, venue and event date are required.',
       });
     }
 
     const dateValue = event_date || eventDate;
-    const parsedDate = new Date(dateValue + "T00:00:00");
+    const parsedDate = new Date(dateValue + 'T00:00:00');
 
     if (isNaN(parsedDate.getTime())) {
       return res.status(400).json({
         success: false,
-        message: "Invalid event date.",
+        message: 'Invalid event date.',
       });
     }
 
@@ -49,9 +49,9 @@ const createEvent = async (req, res) => {
       } else {
         const newCollege = await prisma.college.create({
           data: {
-            name: "CampusConnect College",
-            email: "admin@campusconnect.com",
-            address: "CampusConnect",
+            name: 'CampusConnect College',
+            email: 'admin@campusconnect.com',
+            address: 'CampusConnect',
           },
         });
 
@@ -68,19 +68,19 @@ const createEvent = async (req, res) => {
     if (!college) {
       return res.status(404).json({
         success: false,
-        message: "College not found.",
+        message: 'College not found.',
       });
     }
 
     const event = await prisma.event.create({
       data: {
         title: title.trim(),
-        description: description ? description.trim() : "",
+        description: description ? description.trim() : '',
         venue: venue.trim(),
         collegeId: selectedCollegeId,
         eventDate: parsedDate,
-        status: status || "UPCOMING",
-        category: category || "Workshop",
+        status: status || 'UPCOMING',
+        category: category || 'Workshop',
         capacity: capacity ? parseInt(capacity, 10) : 100,
         registrationDeadline: registrationDeadline ? new Date(registrationDeadline) : null,
         posterUrl: posterUrl || null,
@@ -93,7 +93,7 @@ const createEvent = async (req, res) => {
     // Notify all registered students of new event
     try {
       const students = await prisma.user.findMany({
-        where: { role: "STUDENT" },
+        where: { role: 'STUDENT' },
         select: { id: true },
       });
       if (students.length > 0) {
@@ -101,30 +101,30 @@ const createEvent = async (req, res) => {
           data: students.map((s) => ({
             userId: s.id,
             title: `New Event: ${event.title}`,
-            message: `A new ${event.category || "campus"} event "${event.title}" has been scheduled for ${new Date(event.eventDate).toLocaleDateString()}.`,
-            type: "INFO",
-            link: "/student-events",
+            message: `A new ${event.category || 'campus'} event "${event.title}" has been scheduled for ${new Date(event.eventDate).toLocaleDateString()}.`,
+            type: 'INFO',
+            link: '/student-events',
           })),
         });
       }
     } catch (notifErr) {
-      console.error("EVENT NOTIFICATION ERROR:", notifErr);
+      console.error('EVENT NOTIFICATION ERROR:', notifErr);
     }
 
-    console.log("Event created:", event);
+    console.log('Event created:', event);
 
     return res.status(201).json({
       success: true,
-      message: "Event created successfully.",
+      message: 'Event created successfully.',
       event,
     });
   } catch (error) {
-    console.error("========== CREATE EVENT ERROR ==========");
+    console.error('========== CREATE EVENT ERROR ==========');
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to create event.",
+      message: 'Failed to create event.',
       error: error.message,
     });
   }
@@ -135,11 +135,11 @@ const createEvent = async (req, res) => {
 // ======================================================
 const getAllEvents = async (req, res) => {
   try {
-    console.log("========== GET ALL EVENTS ==========");
+    console.log('========== GET ALL EVENTS ==========');
 
     const events = await prisma.event.findMany({
       orderBy: {
-        eventDate: "asc",
+        eventDate: 'asc',
       },
       include: {
         college: true,
@@ -153,12 +153,12 @@ const getAllEvents = async (req, res) => {
       events,
     });
   } catch (error) {
-    console.error("========== GET EVENTS ERROR ==========");
+    console.error('========== GET EVENTS ERROR ==========');
     console.error(error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch events.",
+      message: 'Failed to fetch events.',
       error: error.message,
     });
   }
@@ -188,7 +188,7 @@ const getEventById = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -197,11 +197,11 @@ const getEventById = async (req, res) => {
       event,
     });
   } catch (error) {
-    console.error("GET EVENT ERROR:", error);
+    console.error('GET EVENT ERROR:', error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch event.",
+      message: 'Failed to fetch event.',
       error: error.message,
     });
   }
@@ -236,21 +236,21 @@ const updateEvent = async (req, res) => {
     if (!existingEvent) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
     if (title !== undefined && !title.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Event title cannot be empty.",
+        message: 'Event title cannot be empty.',
       });
     }
 
     if (venue !== undefined && !venue.trim()) {
       return res.status(400).json({
         success: false,
-        message: "Event venue cannot be empty.",
+        message: 'Event venue cannot be empty.',
       });
     }
 
@@ -259,12 +259,12 @@ const updateEvent = async (req, res) => {
     if (event_date || eventDate) {
       const dateValue = event_date || eventDate;
 
-      parsedDate = new Date(dateValue + "T00:00:00");
+      parsedDate = new Date(dateValue + 'T00:00:00');
 
       if (isNaN(parsedDate.getTime())) {
         return res.status(400).json({
           success: false,
-          message: "Invalid event date.",
+          message: 'Invalid event date.',
         });
       }
     }
@@ -291,15 +291,15 @@ const updateEvent = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Event updated successfully.",
+      message: 'Event updated successfully.',
       event: updatedEvent,
     });
   } catch (error) {
-    console.error("UPDATE EVENT ERROR:", error);
+    console.error('UPDATE EVENT ERROR:', error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to update event.",
+      message: 'Failed to update event.',
       error: error.message,
     });
   }
@@ -321,7 +321,7 @@ const deleteEvent = async (req, res) => {
     if (!existingEvent) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -339,14 +339,14 @@ const deleteEvent = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      message: "Event deleted successfully.",
+      message: 'Event deleted successfully.',
     });
   } catch (error) {
-    console.error("DELETE EVENT ERROR:", error);
+    console.error('DELETE EVENT ERROR:', error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to delete event.",
+      message: 'Failed to delete event.',
       error: error.message,
     });
   }
@@ -366,7 +366,7 @@ const registerForEvent = async (req, res) => {
     if (!userId) {
       return res.status(401).json({
         success: false,
-        message: "Authenticated user not found.",
+        message: 'Authenticated user not found.',
       });
     }
 
@@ -379,7 +379,7 @@ const registerForEvent = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -392,7 +392,7 @@ const registerForEvent = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found.",
+        message: 'User not found.',
       });
     }
 
@@ -409,7 +409,7 @@ const registerForEvent = async (req, res) => {
     if (existingRegistration) {
       return res.status(409).json({
         success: false,
-        message: "Already registered for this event.",
+        message: 'Already registered for this event.',
       });
     }
 
@@ -422,15 +422,15 @@ const registerForEvent = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registered successfully.",
+      message: 'Registered successfully.',
       registration,
     });
   } catch (error) {
-    console.error("REGISTER EVENT ERROR:", error);
+    console.error('REGISTER EVENT ERROR:', error);
 
     return res.status(500).json({
       success: false,
-      message: "Failed to register for event.",
+      message: 'Failed to register for event.',
       error: error.message,
     });
   }
@@ -460,7 +460,7 @@ const getRegisteredStudents = async (req, res) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: "Event not found.",
+        message: 'Event not found.',
       });
     }
 
@@ -481,7 +481,7 @@ const getRegisteredStudents = async (req, res) => {
         certificate: true,
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: 'desc',
       },
     });
 
@@ -507,13 +507,13 @@ const getRegisteredStudents = async (req, res) => {
     });
   } catch (error) {
     console.error(
-      "GET REGISTERED STUDENTS ERROR:",
+      'GET REGISTERED STUDENTS ERROR:',
       error
     );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch registered students.",
+      message: 'Failed to fetch registered students.',
       error: error.message,
     });
   }
@@ -528,7 +528,7 @@ const getDashboardStats = async (req, res) => {
 
     const totalStudents = await prisma.user.count({
       where: {
-        role: "STUDENT",
+        role: 'STUDENT',
       },
     });
 
@@ -537,7 +537,7 @@ const getDashboardStats = async (req, res) => {
 
     const upcomingEvents = await prisma.event.count({
       where: {
-        status: "UPCOMING",
+        status: 'UPCOMING',
       },
     });
 
@@ -552,13 +552,13 @@ const getDashboardStats = async (req, res) => {
     });
   } catch (error) {
     console.error(
-      "GET DASHBOARD STATS ERROR:",
+      'GET DASHBOARD STATS ERROR:',
       error
     );
 
     return res.status(500).json({
       success: false,
-      message: "Failed to fetch dashboard statistics.",
+      message: 'Failed to fetch dashboard statistics.',
       error: error.message,
     });
   }

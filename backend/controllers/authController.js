@@ -1,5 +1,5 @@
-﻿const prisma = require("../config/prisma");
-const bcrypt = require("bcrypt");
+﻿const prisma = require('../config/prisma');
+const bcrypt = require('bcrypt');
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -8,11 +8,11 @@ const {
   setRefreshTokenCookie,
   clearRefreshTokenCookie,
   REFRESH_TOKEN_COOKIE_NAME,
-} = require("../utils/tokens");
+} = require('../utils/tokens');
 const {
   sendVerificationEmail,
   sendPasswordResetEmail,
-} = require("../utils/emailService");
+} = require('../utils/emailService');
 
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_DURATION_MINUTES = 15;
@@ -35,7 +35,7 @@ const register = async (req, res, next) => {
     if (existingUser) {
       return res.status(409).json({
         success: false,
-        message: "An account with this email address already exists.",
+        message: 'An account with this email address already exists.',
       });
     }
 
@@ -50,7 +50,7 @@ const register = async (req, res, next) => {
         password: hashedPassword,
         department: department?.trim() || null,
         year: year || null,
-        role: role || "STUDENT",
+        role: role || 'STUDENT',
         collegeId: collegeId || null,
         isVerified: false,
       },
@@ -62,7 +62,7 @@ const register = async (req, res, next) => {
       data: {
         tokenHash: hashToken(verificationToken),
         userId: user.id,
-        type: "EMAIL_VERIFICATION",
+        type: 'EMAIL_VERIFICATION',
         expiresAt,
       },
     });
@@ -85,7 +85,7 @@ const register = async (req, res, next) => {
         userId: user.id,
         expiresAt: refreshExpiresAt,
         ipAddress: req.ip,
-        userAgent: req.headers["user-agent"] || null,
+        userAgent: req.headers['user-agent'] || null,
       },
     });
 
@@ -93,7 +93,7 @@ const register = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "Registration successful. Please verify your email address.",
+      message: 'Registration successful. Please verify your email address.',
       token: accessToken,
       user: {
         id: user.id,
@@ -125,7 +125,7 @@ const login = async (req, res, next) => {
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "Invalid email or password.",
+        message: 'Invalid email or password.',
       });
     }
 
@@ -200,7 +200,7 @@ const login = async (req, res, next) => {
         userId: user.id,
         expiresAt: refreshExpiresAt,
         ipAddress: req.ip,
-        userAgent: req.headers["user-agent"] || null,
+        userAgent: req.headers['user-agent'] || null,
       },
     });
 
@@ -208,7 +208,7 @@ const login = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Login successful.",
+      message: 'Login successful.',
       token: accessToken,
       user: {
         id: user.id,
@@ -236,7 +236,7 @@ const refreshToken = async (req, res, next) => {
     if (!incomingToken) {
       return res.status(401).json({
         success: false,
-        message: "No refresh token provided.",
+        message: 'No refresh token provided.',
       });
     }
 
@@ -252,7 +252,7 @@ const refreshToken = async (req, res, next) => {
       clearRefreshTokenCookie(res);
       return res.status(401).json({
         success: false,
-        message: "Refresh token is invalid or expired. Please log in again.",
+        message: 'Refresh token is invalid or expired. Please log in again.',
       });
     }
 
@@ -275,7 +275,7 @@ const refreshToken = async (req, res, next) => {
         userId: user.id,
         expiresAt: newExpiresAt,
         ipAddress: req.ip,
-        userAgent: req.headers["user-agent"] || null,
+        userAgent: req.headers['user-agent'] || null,
       },
     });
 
@@ -283,7 +283,7 @@ const refreshToken = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Token refreshed successfully.",
+      message: 'Token refreshed successfully.',
       token: newAccessToken,
       user: {
         id: user.id,
@@ -318,7 +318,7 @@ const logout = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Logged out successfully.",
+      message: 'Logged out successfully.',
     });
   } catch (error) {
     next(error);
@@ -350,7 +350,7 @@ const logoutAllDevices = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Logged out from all devices successfully.",
+      message: 'Logged out from all devices successfully.',
     });
   } catch (error) {
     next(error);
@@ -372,13 +372,13 @@ const verifyEmail = async (req, res, next) => {
 
     if (
       !authToken ||
-      authToken.type !== "EMAIL_VERIFICATION" ||
+      authToken.type !== 'EMAIL_VERIFICATION' ||
       authToken.usedAt ||
       new Date() > authToken.expiresAt
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired verification token.",
+        message: 'Invalid or expired verification token.',
       });
     }
 
@@ -396,7 +396,7 @@ const verifyEmail = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Email verified successfully! You can now access all campus features.",
+      message: 'Email verified successfully! You can now access all campus features.',
     });
   } catch (error) {
     next(error);
@@ -420,7 +420,7 @@ const forgotPassword = async (req, res, next) => {
       return res.status(200).json({
         success: true,
         message:
-          "If an account exists with that email address, a password reset link has been sent.",
+          'If an account exists with that email address, a password reset link has been sent.',
       });
     }
 
@@ -428,7 +428,7 @@ const forgotPassword = async (req, res, next) => {
     await prisma.authToken.deleteMany({
       where: {
         userId: user.id,
-        type: "PASSWORD_RESET",
+        type: 'PASSWORD_RESET',
         usedAt: null,
       },
     });
@@ -439,7 +439,7 @@ const forgotPassword = async (req, res, next) => {
       data: {
         tokenHash: hashToken(resetToken),
         userId: user.id,
-        type: "PASSWORD_RESET",
+        type: 'PASSWORD_RESET',
         expiresAt,
       },
     });
@@ -453,7 +453,7 @@ const forgotPassword = async (req, res, next) => {
     return res.status(200).json({
       success: true,
       message:
-        "If an account exists with that email address, a password reset link has been sent.",
+        'If an account exists with that email address, a password reset link has been sent.',
     });
   } catch (error) {
     next(error);
@@ -475,13 +475,13 @@ const resetPassword = async (req, res, next) => {
 
     if (
       !authToken ||
-      authToken.type !== "PASSWORD_RESET" ||
+      authToken.type !== 'PASSWORD_RESET' ||
       authToken.usedAt ||
       new Date() > authToken.expiresAt
     ) {
       return res.status(400).json({
         success: false,
-        message: "Invalid or expired password reset token.",
+        message: 'Invalid or expired password reset token.',
       });
     }
 
@@ -510,7 +510,7 @@ const resetPassword = async (req, res, next) => {
 
     return res.status(200).json({
       success: true,
-      message: "Password reset successful. Please log in with your new password.",
+      message: 'Password reset successful. Please log in with your new password.',
     });
   } catch (error) {
     next(error);
@@ -540,7 +540,7 @@ const getMe = async (req, res, next) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found.",
+        message: 'User not found.',
       });
     }
 

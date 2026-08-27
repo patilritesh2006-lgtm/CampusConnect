@@ -1,4 +1,4 @@
-const express = require("express");
+const express = require('express');
 
 const router = express.Router();
 
@@ -11,16 +11,16 @@ const {
   registerForEvent,
   getRegisteredStudents,
   getDashboardStats,
-} = require("../controllers/eventController");
+} = require('../controllers/eventController');
 
 const {
   authenticateToken,
   requireAdmin,
   requireStudent,
-} = require("../middleware/authMiddleware");
+} = require('../middleware/authMiddleware');
 
-const { validate } = require("../middleware/validate");
-const { createEventSchema, updateEventSchema } = require("../validators/eventSchemas");
+const { validate } = require('../middleware/validate');
+const { createEventSchema, updateEventSchema } = require('../validators/eventSchemas');
 
 // ======================================================
 // ADMIN DASHBOARD STATS
@@ -28,7 +28,7 @@ const { createEventSchema, updateEventSchema } = require("../validators/eventSch
 // ======================================================
 
 router.get(
-  "/stats",
+  '/stats',
   authenticateToken,
   requireAdmin,
   getDashboardStats
@@ -41,7 +41,7 @@ router.get(
 // ======================================================
 
 router.get(
-  "/",
+  '/',
   authenticateToken,
   getAllEvents
 );
@@ -53,7 +53,7 @@ router.get(
 // ======================================================
 
 router.post(
-  "/",
+  '/',
   authenticateToken,
   requireAdmin,
   validate(createEventSchema),
@@ -67,7 +67,7 @@ router.post(
 // ======================================================
 
 router.post(
-  "/:id/register",
+  '/:id/register',
   authenticateToken,
   requireStudent,
   registerForEvent
@@ -80,7 +80,7 @@ router.post(
 // ======================================================
 
 router.get(
-  "/:id/students",
+  '/:id/students',
   authenticateToken,
   requireAdmin,
   getRegisteredStudents
@@ -93,7 +93,7 @@ router.get(
 // ======================================================
 
 router.get(
-  "/:id",
+  '/:id',
   authenticateToken,
   getEventById
 );
@@ -105,7 +105,7 @@ router.get(
 // ======================================================
 
 router.put(
-  "/:id",
+  '/:id',
   authenticateToken,
   requireAdmin,
   validate(updateEventSchema),
@@ -119,7 +119,7 @@ router.put(
 // ======================================================
 
 router.delete(
-  "/:id",
+  '/:id',
   authenticateToken,
   requireAdmin,
   deleteEvent

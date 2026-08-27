@@ -1,4 +1,4 @@
-﻿const prisma = require("../config/prisma");
+﻿const prisma = require('../config/prisma');
 
 /**
  * Compute the Official CampusConnect Student Engagement Score (0 - 100)
@@ -37,7 +37,7 @@ const getAdminAnalytics = async (req, res, next) => {
       students,
     ] = await Promise.all([
       prisma.event.count(),
-      prisma.user.count({ where: { role: "STUDENT" } }),
+      prisma.user.count({ where: { role: 'STUDENT' } }),
       prisma.registration.count(),
       prisma.registration.count({ where: { attended: true } }),
       prisma.certificate.count(),
@@ -46,10 +46,10 @@ const getAdminAnalytics = async (req, res, next) => {
           registrations: true,
           certificates: true,
         },
-        orderBy: { eventDate: "desc" },
+        orderBy: { eventDate: 'desc' },
       }),
       prisma.user.findMany({
-        where: { role: "STUDENT" },
+        where: { role: 'STUDENT' },
         include: {
           registrations: true,
           certificates: true,
@@ -65,7 +65,7 @@ const getAdminAnalytics = async (req, res, next) => {
     // 1. Department Breakdown
     const deptMap = {};
     students.forEach((s) => {
-      const dept = s.department || "General / Unassigned";
+      const dept = s.department || 'General / Unassigned';
       if (!deptMap[dept]) {
         deptMap[dept] = { students: 0, registrations: 0, attended: 0 };
       }
@@ -117,15 +117,15 @@ const getAdminAnalytics = async (req, res, next) => {
     const avgEngagementScore =
       studentScores.length > 0
         ? Math.round(
-            studentScores.reduce((acc, val) => acc + val, 0) /
+          studentScores.reduce((acc, val) => acc + val, 0) /
               studentScores.length
-          )
+        )
         : 0;
 
     // 4. Category Popularity
     const categoryMap = {};
     events.forEach((e) => {
-      const cat = e.category || "General";
+      const cat = e.category || 'General';
       categoryMap[cat] = (categoryMap[cat] || 0) + e.registrations.length;
     });
 

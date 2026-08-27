@@ -1,6 +1,6 @@
-﻿const crypto = require("crypto");
+﻿const crypto = require('crypto');
 
-const QR_SECRET = process.env.JWT_SECRET || "campusconnect_rotating_qr_secret_key_2026";
+const QR_SECRET = process.env.JWT_SECRET || 'campusconnect_rotating_qr_secret_key_2026';
 const ROTATION_WINDOW_SECONDS = 30;
 
 /**
@@ -14,9 +14,9 @@ const generateEventQRToken = (eventId) => {
 
   const payload = `${eventId}:${timeBucket}`;
   const signature = crypto
-    .createHmac("sha256", QR_SECRET)
+    .createHmac('sha256', QR_SECRET)
     .update(payload)
-    .digest("hex")
+    .digest('hex')
     .substring(0, 16);
 
   return {
@@ -32,24 +32,24 @@ const generateEventQRToken = (eventId) => {
  * Allows a 1-window grace period (e.g. up to 60s) for clock drift / network latency
  */
 const verifyEventQRToken = (eventId, qrToken) => {
-  if (!qrToken || typeof qrToken !== "string") {
-    return { valid: false, message: "Missing or malformed QR token." };
+  if (!qrToken || typeof qrToken !== 'string') {
+    return { valid: false, message: 'Missing or malformed QR token.' };
   }
 
-  const parts = qrToken.split(".");
+  const parts = qrToken.split('.');
   if (parts.length !== 3) {
-    return { valid: false, message: "Invalid QR token format." };
+    return { valid: false, message: 'Invalid QR token format.' };
   }
 
   const [tokenEventId, timeBucketStr, signature] = parts;
 
   if (tokenEventId !== eventId) {
-    return { valid: false, message: "QR token does not belong to this event." };
+    return { valid: false, message: 'QR token does not belong to this event.' };
   }
 
   const timeBucket = parseInt(timeBucketStr, 10);
   if (isNaN(timeBucket)) {
-    return { valid: false, message: "Corrupted timestamp in QR token." };
+    return { valid: false, message: 'Corrupted timestamp in QR token.' };
   }
 
   const currentTimestamp = Math.floor(Date.now() / 1000);
@@ -62,20 +62,20 @@ const verifyEventQRToken = (eventId, qrToken) => {
   if (!isBucketValid) {
     return {
       valid: false,
-      message: "QR code has expired. Please scan the current code displayed on the screen.",
+      message: 'QR code has expired. Please scan the current code displayed on the screen.',
     };
   }
 
   // Verify HMAC signature
   const expectedPayload = `${tokenEventId}:${timeBucket}`;
   const expectedSignature = crypto
-    .createHmac("sha256", QR_SECRET)
+    .createHmac('sha256', QR_SECRET)
     .update(expectedPayload)
-    .digest("hex")
+    .digest('hex')
     .substring(0, 16);
 
   if (signature !== expectedSignature) {
-    return { valid: false, message: "Invalid cryptographic QR signature." };
+    return { valid: false, message: 'Invalid cryptographic QR signature.' };
   }
 
   return { valid: true };

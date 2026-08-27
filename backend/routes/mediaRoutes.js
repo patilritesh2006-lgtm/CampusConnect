@@ -1,17 +1,17 @@
-﻿const express = require("express");
+﻿const express = require('express');
 const router = express.Router();
 
-const { addEventMedia, getEventMedia } = require("../controllers/mediaController");
-const { authenticateToken, requireRole } = require("../middleware/authMiddleware");
+const { addEventMedia, getEventMedia } = require('../controllers/mediaController');
+const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
 
 // View gallery (Public)
-router.get("/events/:eventId/media", getEventMedia);
+router.get('/events/:eventId/media', getEventMedia);
 
 // Upload / Add media (Admin / Faculty / Coordinator)
 router.post(
-  "/events/:eventId/media",
+  '/events/:eventId/media',
   authenticateToken,
-  requireRole("SUPER_ADMIN", "ADMIN", "FACULTY", "EVENT_COORDINATOR"),
+  requireRole('SUPER_ADMIN', 'ADMIN', 'FACULTY', 'EVENT_COORDINATOR'),
   addEventMedia
 );
 

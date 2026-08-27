@@ -12,7 +12,7 @@ export default function StudentProfile() {
     attendanceRate: 0,
     badges: [],
   });
-  const [loading, setLoading] = useState(true);
+  const [_loading, setLoading] = useState(true);
 
   const [editData, setEditData] = useState({ fullName: "", department: "", year: "" });
   const [editLoading, setEditLoading] = useState(false);

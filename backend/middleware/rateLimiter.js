@@ -1,4 +1,4 @@
-﻿const rateLimit = require("express-rate-limit");
+﻿const rateLimit = require('express-rate-limit');
 
 // General rate limiter: 150 requests per 15 minutes per IP
 const apiLimiter = rateLimit({
@@ -8,7 +8,7 @@ const apiLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many requests from this IP. Please try again after 15 minutes.",
+    message: 'Too many requests from this IP. Please try again after 15 minutes.',
   },
 });
 
@@ -20,7 +20,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
   message: {
     success: false,
-    message: "Too many login/auth attempts from this IP. Please try again after 15 minutes.",
+    message: 'Too many login/auth attempts from this IP. Please try again after 15 minutes.',
   },
 });
 

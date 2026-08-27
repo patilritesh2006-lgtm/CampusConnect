@@ -1,4 +1,4 @@
-﻿const prisma = require("../config/prisma");
+﻿const prisma = require('../config/prisma');
 
 // ======================================================
 // SUBMIT EVENT FEEDBACK (Student)
@@ -12,7 +12,7 @@ const submitFeedback = async (req, res, next) => {
     if (!rating || rating < 1 || rating > 5) {
       return res.status(400).json({
         success: false,
-        message: "A rating between 1 and 5 stars is required.",
+        message: 'A rating between 1 and 5 stars is required.',
       });
     }
 
@@ -29,7 +29,7 @@ const submitFeedback = async (req, res, next) => {
     if (!registration || !registration.attended) {
       return res.status(403).json({
         success: false,
-        message: "You can only submit feedback for events you have attended.",
+        message: 'You can only submit feedback for events you have attended.',
       });
     }
 
@@ -45,7 +45,7 @@ const submitFeedback = async (req, res, next) => {
     if (existingFeedback) {
       return res.status(400).json({
         success: false,
-        message: "You have already submitted feedback for this event.",
+        message: 'You have already submitted feedback for this event.',
       });
     }
 
@@ -74,7 +74,7 @@ const submitFeedback = async (req, res, next) => {
 
     return res.status(201).json({
       success: true,
-      message: "Thank you for your feedback! +25 XP awarded.",
+      message: 'Thank you for your feedback! +25 XP awarded.',
       feedback,
     });
   } catch (error) {
@@ -94,7 +94,7 @@ const getEventFeedback = async (req, res, next) => {
       include: {
         user: { select: { id: true, fullName: true, department: true } },
       },
-      orderBy: { createdAt: "desc" },
+      orderBy: { createdAt: 'desc' },
     });
 
     const totalReviews = feedbacks.length;

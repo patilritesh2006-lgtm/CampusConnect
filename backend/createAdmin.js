@@ -1,12 +1,12 @@
-const prisma = require("./config/prisma");
-const bcrypt = require("bcrypt");
+const prisma = require('./config/prisma');
+const bcrypt = require('bcrypt');
 
 const createAdmin = async () => {
   try {
-    console.log("========== CREATE ADMIN ==========");
+    console.log('========== CREATE ADMIN ==========');
 
-    const email = "admin@campusconnect.com";
-    const password = "admin123";
+    const email = 'admin@campusconnect.com';
+    const password = 'admin123';
 
     // Check if admin already exists
     const existingAdmin = await prisma.user.findUnique({
@@ -19,8 +19,8 @@ const createAdmin = async () => {
     const hashedPassword = await bcrypt.hash(password, 10);
 
     if (existingAdmin) {
-      console.log("Admin already exists.");
-      console.log("Updating admin password and role...");
+      console.log('Admin already exists.');
+      console.log('Updating admin password and role...');
 
       const updatedAdmin = await prisma.user.update({
         where: {
@@ -28,16 +28,16 @@ const createAdmin = async () => {
         },
         data: {
           password: hashedPassword,
-          role: "ADMIN",
+          role: 'ADMIN',
         },
       });
 
-      console.log("=================================");
-      console.log("ADMIN UPDATED SUCCESSFULLY");
-      console.log("Email:", updatedAdmin.email);
-      console.log("Password:", password);
-      console.log("Role:", updatedAdmin.role);
-      console.log("=================================");
+      console.log('=================================');
+      console.log('ADMIN UPDATED SUCCESSFULLY');
+      console.log('Email:', updatedAdmin.email);
+      console.log('Password:', password);
+      console.log('Role:', updatedAdmin.role);
+      console.log('=================================');
 
       return;
     }
@@ -45,21 +45,21 @@ const createAdmin = async () => {
     // Create new admin
     const admin = await prisma.user.create({
       data: {
-        fullName: "CampusConnect Admin",
+        fullName: 'CampusConnect Admin',
         email,
         password: hashedPassword,
-        role: "ADMIN",
+        role: 'ADMIN',
       },
     });
 
-    console.log("=================================");
-    console.log("ADMIN CREATED SUCCESSFULLY");
-    console.log("Email:", admin.email);
-    console.log("Password:", password);
-    console.log("Role:", admin.role);
-    console.log("=================================");
+    console.log('=================================');
+    console.log('ADMIN CREATED SUCCESSFULLY');
+    console.log('Email:', admin.email);
+    console.log('Password:', password);
+    console.log('Role:', admin.role);
+    console.log('=================================');
   } catch (error) {
-    console.error("========== CREATE ADMIN ERROR ==========");
+    console.error('========== CREATE ADMIN ERROR ==========');
     console.error(error);
   } finally {
     await prisma.$disconnect();

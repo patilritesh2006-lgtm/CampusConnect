@@ -1,18 +1,18 @@
-import React from "react";
 import { Navigate } from "react-router-dom";
+
+function parseStoredUser(userString) {
+  try {
+    return JSON.parse(userString || "null");
+  } catch (error) {
+    console.error("Invalid user data:", error);
+    return null;
+  }
+}
 
 function ProtectedRoute({ children, role }) {
   const token = localStorage.getItem("token");
   const userString = localStorage.getItem("user");
-
-  let user = null;
-
-  try {
-    user = JSON.parse(userString || "null");
-  } catch (error) {
-    console.error("Invalid user data:", error);
-    user = null;
-  }
+  const user = parseStoredUser(userString);
 
   // No token or user
   if (!token || !user) {
