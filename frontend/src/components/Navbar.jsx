@@ -33,17 +33,30 @@ function Navbar() {
         {/* LOGO */}
         <Link to="/" className="flex items-center gap-2.5 group">
           <img
-            src="/logo-icon.png"
-            alt="CampusConnect Logo"
-            className="w-10 h-10 object-contain group-hover:scale-105 transition"
+            src="/logo.png"
+            alt="CampusConnect — Event & Activity Hub"
+            className="h-9 w-auto object-contain group-hover:scale-105 transition"
+            onError={(e) => {
+              e.currentTarget.style.display = 'none';
+              if (e.currentTarget.nextSibling) {
+                e.currentTarget.nextSibling.style.display = 'flex';
+              }
+            }}
           />
-          <div>
-            <span className="text-xl font-extrabold text-slate-900 tracking-tight">
-              Campus<span className="text-blue-600">Connect</span>
-            </span>
-            <span className="hidden sm:inline-block text-[10px] text-gray-400 font-semibold uppercase tracking-wider block -mt-1">
-              Event & Activity Hub
-            </span>
+          <div className="hidden items-center gap-2.5">
+            <img
+              src="/logo-icon.png"
+              alt="CampusConnect Logo"
+              className="w-10 h-10 object-contain group-hover:scale-105 transition"
+            />
+            <div>
+              <span className="text-xl font-extrabold text-slate-900 tracking-tight">
+                Campus<span className="text-blue-600">Connect</span>
+              </span>
+              <span className="hidden sm:inline-block text-[10px] text-gray-400 font-semibold uppercase tracking-wider block -mt-1">
+                Event & Activity Hub
+              </span>
+            </div>
           </div>
         </Link>
 

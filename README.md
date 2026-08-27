@@ -1,14 +1,20 @@
-# 🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform
+<p align="center">
+  <img src="./docs/logo.png" alt="CampusConnect - Event & Activity Hub" width="550" />
+</p>
 
-[![CI/CD Pipeline](https://github.com/patilritesh2006-lgtm/CampusConnect/actions/workflows/ci.yml/badge.svg)](https://github.com/patilritesh2006-lgtm/CampusConnect/actions)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Issues](https://img.shields.io/github/issues/patilritesh2006-lgtm/CampusConnect)](https://github.com/patilritesh2006-lgtm/CampusConnect/issues)
-[![React](https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite-61DAFB?logo=react&logoColor=black)](https://reactjs.org/)
-[![Tailwind CSS](https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![Node.js](https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
-[![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748?logo=prisma&logoColor=white)](https://www.prisma.io/)
-[![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![PWA](https://img.shields.io/badge/PWA-Cross--Platform%20Ready-5A0FC8?logo=pwa&logoColor=white)](https://web.dev/progressive-web-apps/)
+<h1 align="center">🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform</h1>
+
+<p align="center">
+  <a href="https://github.com/patilritesh2006-lgtm/CampusConnect/actions"><img src="https://github.com/patilritesh2006-lgtm/CampusConnect/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline" /></a>
+  <a href="https://opensource.org/licenses/MIT"><img src="https://img.shields.io/badge/License-MIT-yellow.svg" alt="License: MIT" /></a>
+  <a href="https://github.com/patilritesh2006-lgtm/CampusConnect/issues"><img src="https://img.shields.io/github/issues/patilritesh2006-lgtm/CampusConnect" alt="Issues" /></a>
+  <a href="https://reactjs.org/"><img src="https://img.shields.io/badge/Frontend-React%2019%20%2B%20Vite-61DAFB?logo=react&logoColor=black" alt="React" /></a>
+  <a href="https://tailwindcss.com/"><img src="https://img.shields.io/badge/Styling-Tailwind%20CSS-38B2AC?logo=tailwind-css&logoColor=white" alt="Tailwind CSS" /></a>
+  <a href="https://nodejs.org/"><img src="https://img.shields.io/badge/Backend-Node.js%20%2B%20Express-339933?logo=node.js&logoColor=white" alt="Node.js" /></a>
+  <a href="https://www.prisma.io/"><img src="https://img.shields.io/badge/ORM-Prisma-2D3748?logo=prisma&logoColor=white" alt="Prisma" /></a>
+  <a href="https://www.postgresql.org/"><img src="https://img.shields.io/badge/Database-PostgreSQL-4169E1?logo=postgresql&logoColor=white" alt="PostgreSQL" /></a>
+  <a href="https://web.dev/progressive-web-apps/"><img src="https://img.shields.io/badge/PWA-Cross--Platform%20Ready-5A0FC8?logo=pwa&logoColor=white" alt="PWA" /></a>
+</p>
 
 > **CampusConnect** is an enterprise-grade, full-stack college event and student activity ecosystem. It transforms campus life through **time-based rotating QR check-ins**, **verified digital credentials with LinkedIn integration**, **an AI-powered Campus Assistant & Recommendation engine**, **public digital portfolios**, **campus gamification with XP leaderboards**, **automated reminder schedulers**, and **role-based administrative analytics**.
 
@@ -46,11 +52,11 @@ graph TD
 
 | Student Dashboard 2.0 | Interactive Event Calendar |
 | :---: | :---: |
-| ![CampusConnect Dashboard](./docs/screenshots/dashboard.png) <br> *Activity metrics, XP progress bar, quick QR scanner, and AI recommendations* | ![Event Calendar](./docs/screenshots/calendar.png) <br> *Campus-wide monthly schedule with category filters and event modals* |
+| ![CampusConnect Dashboard](./docs/screenshots/dashboard.svg) <br> *Activity metrics, XP progress bar, quick QR scanner, and AI recommendations* | ![Event Calendar](./docs/screenshots/calendar.svg) <br> *Campus-wide monthly schedule with category filters and event modals* |
 
 | Verified Digital Certificate | Administrative Analytics |
 | :---: | :---: |
-| ![Verified Digital Certificate](./docs/screenshots/certificate.png) <br> *Cryptographic credential with QR verification & LinkedIn Add-to-Profile* | ![Admin Analytics](./docs/screenshots/analytics.png) <br> *Student Engagement Scores (0-100), department metrics, and attendance trends* |
+| ![Verified Digital Certificate](./docs/screenshots/certificate.svg) <br> *Cryptographic credential with QR verification & LinkedIn Add-to-Profile* | ![Admin Analytics](./docs/screenshots/analytics.svg) <br> *Student Engagement Scores (0-100), department metrics, and attendance trends* |
 
 ---
 

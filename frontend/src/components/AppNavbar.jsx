@@ -50,15 +50,28 @@ export default function AppNavbar({ role }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-3">
-            <Link to={currentRole === "ADMIN" ? "/admin-dashboard" : "/student-dashboard"} className="flex items-center gap-2 group">
+            <Link to={currentRole === 'ADMIN' ? '/admin-dashboard' : '/student-dashboard'} className="flex items-center gap-2 group">
               <img
-                src="/logo-icon.png"
-                alt="CampusConnect Logo"
-                className="w-9 h-9 object-contain group-hover:scale-105 transition"
+                src="/logo.png"
+                alt="CampusConnect — Event & Activity Hub"
+                className="h-8 w-auto object-contain group-hover:scale-105 transition"
+                onError={(e) => {
+                  e.currentTarget.style.display = 'none';
+                  if (e.currentTarget.nextSibling) {
+                    e.currentTarget.nextSibling.style.display = 'flex';
+                  }
+                }}
               />
-              <span className="text-xl font-extrabold text-slate-900 tracking-tight hidden sm:inline">
-                Campus<span className="text-blue-600">Connect</span>
-              </span>
+              <div className="hidden items-center gap-2">
+                <img
+                  src="/logo-icon.png"
+                  alt="CampusConnect Logo"
+                  className="w-8 h-8 object-contain"
+                />
+                <span className="text-xl font-extrabold text-slate-900 tracking-tight hidden sm:inline">
+                  Campus<span className="text-blue-600">Connect</span>
+                </span>
+              </div>
             </Link>
             <span
               className={"text-[11px] font-bold px-2 py-0.5 rounded-full " + (currentRole === "ADMIN" ? "bg-purple-100 text-purple-700" : "bg-blue-100 text-blue-700")}
