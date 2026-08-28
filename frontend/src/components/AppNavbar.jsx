@@ -49,27 +49,19 @@ export default function AppNavbar({ role }) {
     <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
-          <div className="flex items-center gap-3">
-            <Link to={currentRole === 'ADMIN' ? '/admin-dashboard' : '/student-dashboard'} className="flex items-center gap-2 group">
+          <div className="flex items-center gap-3 shrink-0">
+            <Link to={currentRole === 'ADMIN' ? '/admin-dashboard' : '/student-dashboard'} className="flex items-center gap-2.5 group">
               <img
-                src="/logo.png"
-                alt="CampusConnect — Event & Activity Hub"
-                className="h-8 w-auto object-contain group-hover:scale-105 transition"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  if (e.currentTarget.nextSibling) {
-                    e.currentTarget.nextSibling.style.display = 'flex';
-                  }
-                }}
+                src="/logo-icon.png"
+                alt="CampusConnect Logo"
+                className="w-9 h-9 object-contain group-hover:scale-105 transition"
               />
-              <div className="hidden items-center gap-2">
-                <img
-                  src="/logo-icon.png"
-                  alt="CampusConnect Logo"
-                  className="w-8 h-8 object-contain"
-                />
-                <span className="text-xl font-extrabold text-slate-900 tracking-tight hidden sm:inline">
+              <div className="flex flex-col">
+                <span className="text-lg font-extrabold text-slate-900 tracking-tight leading-none">
                   Campus<span className="text-blue-600">Connect</span>
+                </span>
+                <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase leading-tight mt-0.5 hidden sm:block">
+                  Event & Activity Hub
                 </span>
               </div>
             </Link>

@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="./docs/logo.png" alt="CampusConnect - Event & Activity Hub" width="550" />
+  <img src="./docs/logo.png" alt="CampusConnect - Event & Activity Hub" width="470" />
 </p>
 
 <h1 align="center">🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform</h1>

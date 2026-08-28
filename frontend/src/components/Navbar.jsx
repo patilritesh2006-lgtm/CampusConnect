@@ -31,32 +31,19 @@ function Navbar() {
     <nav className="w-full bg-white/95 backdrop-blur-md sticky top-0 z-50 border-b border-gray-100 shadow-sm">
       <div className="max-w-7xl mx-auto flex justify-between items-center px-6 py-4">
         {/* LOGO */}
-        <Link to="/" className="flex items-center gap-2.5 group">
+        <Link to="/" className="flex items-center gap-3 group shrink-0">
           <img
-            src="/logo.png"
-            alt="CampusConnect — Event & Activity Hub"
-            className="h-9 w-auto object-contain group-hover:scale-105 transition"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              if (e.currentTarget.nextSibling) {
-                e.currentTarget.nextSibling.style.display = 'flex';
-              }
-            }}
+            src="/logo-icon.png"
+            alt="CampusConnect Logo"
+            className="w-10 h-10 object-contain group-hover:scale-105 transition"
           />
-          <div className="hidden items-center gap-2.5">
-            <img
-              src="/logo-icon.png"
-              alt="CampusConnect Logo"
-              className="w-10 h-10 object-contain group-hover:scale-105 transition"
-            />
-            <div>
-              <span className="text-xl font-extrabold text-slate-900 tracking-tight">
-                Campus<span className="text-blue-600">Connect</span>
-              </span>
-              <span className="hidden sm:inline-block text-[10px] text-gray-400 font-semibold uppercase tracking-wider block -mt-1">
-                Event & Activity Hub
-              </span>
-            </div>
+          <div className="flex flex-col">
+            <span className="text-xl font-extrabold text-slate-900 tracking-tight leading-none">
+              Campus<span className="text-blue-600">Connect</span>
+            </span>
+            <span className="text-[10px] font-bold text-slate-400 tracking-wider uppercase leading-tight mt-1 hidden sm:block">
+              Event & Activity Hub
+            </span>
           </div>
         </Link>
 
