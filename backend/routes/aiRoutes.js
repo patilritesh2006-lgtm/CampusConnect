@@ -1,13 +1,16 @@
-﻿const express = require('express');
+const express = require("express");
 const router = express.Router();
+const { authenticateToken, requireAdmin } = require("../middleware/authMiddleware");
+const {
+  handleCopilotQuery,
+  handleEventDraft,
+  getEventRecommendations,
+  handleAssistantQuery,
+} = require("../controllers/aiController");
 
-const { getRecommendations, askAssistant } = require('../controllers/aiController');
-const { authenticateToken, requireRole } = require('../middleware/authMiddleware');
-
-// AI Event Recommendations
-router.get('/recommendations', authenticateToken, requireRole('STUDENT'), getRecommendations);
-
-// AI Campus Assistant
-router.post('/assistant', authenticateToken, requireRole('STUDENT', 'FACULTY', 'EVENT_COORDINATOR', 'ADMIN', 'SUPER_ADMIN'), askAssistant);
+router.get("/recommendations", authenticateToken, getEventRecommendations);
+router.post("/assistant", authenticateToken, handleAssistantQuery);
+router.post("/copilot", authenticateToken, handleCopilotQuery);
+router.post("/event-draft", authenticateToken, requireAdmin, handleEventDraft);
 
 module.exports = router;

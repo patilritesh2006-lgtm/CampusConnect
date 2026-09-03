@@ -15,6 +15,15 @@ import Leaderboard from "./pages/Leaderboard";
 import AIAssistant from "./components/AIAssistant";
 import CertificateVerify from "./pages/CertificateVerify";
 
+// CampusConnect v3 Flagship Pages
+import CampusPassport from "./pages/CampusPassport";
+import SkillGraph from "./pages/SkillGraph";
+import RecruiterVerification from "./pages/RecruiterVerification";
+import CredentialDetail from "./pages/CredentialDetail";
+import ClubsHub from "./pages/ClubsHub";
+import AdminFraudConsole from "./pages/AdminFraudConsole";
+import InstitutionalIntelligence from "./pages/InstitutionalIntelligence";
+
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminStudents from "./pages/AdminStudents";
 import AdminEventStudents from "./pages/AdminEventStudents";
@@ -32,7 +41,37 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/verify-certificate" element={<CertificateVerify />} />
         <Route path="/verify-certificate/:certificateCode" element={<CertificateVerify />} />
+        <Route path="/verify/credential/:credentialId" element={<CredentialDetail />} />
+        <Route path="/verify/student/:username" element={<RecruiterVerification />} />
         <Route path="/portfolio/:username" element={<StudentPortfolio />} />
+        <Route path="/passport/:username" element={<CampusPassport />} />
+
+        <Route
+          path="/passport"
+          element={
+            <ProtectedRoute>
+              <CampusPassport />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/skills"
+          element={
+            <ProtectedRoute>
+              <SkillGraph />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/clubs"
+          element={
+            <ProtectedRoute>
+              <ClubsHub />
+            </ProtectedRoute>
+          }
+        />
 
         <Route
           path="/leaderboard"
@@ -138,6 +177,22 @@ function App() {
           element={
             <ProtectedRoute role="ADMIN">
               <AdminAnalytics />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-fraud"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <AdminFraudConsole />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/admin-intelligence"
+          element={
+            <ProtectedRoute role="ADMIN">
+              <InstitutionalIntelligence />
             </ProtectedRoute>
           }
         />

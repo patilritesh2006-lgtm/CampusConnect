@@ -24,33 +24,32 @@ export default function AppNavbar({ role }) {
 
   const studentLinks = [
     { name: "Dashboard", path: "/student-dashboard" },
+    { name: "Passport", path: "/passport" },
+    { name: "Skills", path: "/skills" },
     { name: "Events", path: "/student-events" },
-    { name: "My Registrations", path: "/my-registrations" },
-    { name: "Certificates", path: "/student-certificates" },
+    { name: "Clubs", path: "/clubs" },
     { name: "Leaderboard", path: "/leaderboard" },
     { name: "Calendar", path: "/calendar" },
-    { name: "Announcements", path: "/announcements" },
   ];
 
   const adminLinks = [
     { name: "Dashboard", path: "/admin-dashboard" },
+    { name: "Intelligence", path: "/admin-intelligence" },
+    { name: "Fraud Monitor", path: "/admin-fraud" },
     { name: "Students", path: "/admin-students" },
-    { name: "Certificates", path: "/admin-certificates" },
-    { name: "Analytics", path: "/admin-analytics" },
-    { name: "Leaderboard", path: "/leaderboard" },
-    { name: "Announcements", path: "/announcements" },
-    { name: "Calendar", path: "/calendar" },
+    { name: "Credentials", path: "/admin-certificates" },
+    { name: "Clubs", path: "/clubs" },
   ];
 
   const links = currentRole === "ADMIN" ? adminLinks : studentLinks;
   const isActive = (path) => location.pathname === path;
 
   return (
-    <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-sm">
+    <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 shadow-xs">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex items-center gap-3 shrink-0">
-            <Link to={currentRole === 'ADMIN' ? '/admin-dashboard' : '/student-dashboard'} className="flex items-center gap-2.5 group">
+            <Link to={currentRole === "ADMIN" ? "/admin-dashboard" : "/student-dashboard"} className="flex items-center gap-2.5 group">
               <img
                 src="/logo-icon.png"
                 alt="CampusConnect Logo"
@@ -61,7 +60,7 @@ export default function AppNavbar({ role }) {
                   Campus<span className="text-blue-600">Connect</span>
                 </span>
                 <span className="text-[9px] font-bold text-slate-400 tracking-wider uppercase leading-tight mt-0.5 hidden sm:block">
-                  Event & Activity Hub
+                  Digital Campus Platform v3
                 </span>
               </div>
             </Link>
@@ -77,7 +76,7 @@ export default function AppNavbar({ role }) {
               <Link
                 key={link.path}
                 to={link.path}
-                className={"px-3 py-2 rounded-lg text-xs font-semibold transition " + (isActive(link.path) ? "bg-blue-600 text-white shadow-sm" : "text-gray-600 hover:text-blue-600 hover:bg-gray-50")}
+                className={"px-3 py-1.5 rounded-xl text-xs font-bold transition " + (isActive(link.path) ? "bg-slate-900 text-white shadow-xs" : "text-slate-600 hover:text-blue-600 hover:bg-slate-50")}
               >
                 {link.name}
               </Link>
@@ -89,20 +88,20 @@ export default function AppNavbar({ role }) {
 
             <Link
               to="/student-profile"
-              className={"flex items-center gap-2 p-1.5 rounded-xl border transition " + (isActive("/student-profile") ? "border-blue-600 bg-blue-50 text-blue-700" : "border-gray-200 hover:bg-gray-50 text-gray-700")}
+              className={"flex items-center gap-2 p-1.5 rounded-xl border transition " + (isActive("/student-profile") ? "border-blue-600 bg-blue-50 text-blue-700" : "border-slate-200 hover:bg-slate-50 text-slate-700")}
               title="View Profile & Achievements"
             >
-              <div className="w-7 h-7 rounded-lg bg-gray-200 text-gray-700 flex items-center justify-center font-bold text-xs">
+              <div className="w-7 h-7 rounded-lg bg-slate-200 text-slate-800 flex items-center justify-center font-bold text-xs">
                 {user.fullName ? user.fullName[0].toUpperCase() : "U"}
               </div>
-              <span className="text-xs font-medium hidden md:inline truncate max-w-[100px]">
+              <span className="text-xs font-semibold hidden md:inline truncate max-w-[100px]">
                 {user.fullName ? user.fullName.split(" ")[0] : "Profile"}
               </span>
             </Link>
 
             <button
               onClick={handleLogout}
-              className="flex items-center gap-1 bg-gray-100 hover:bg-red-50 hover:text-red-600 text-gray-600 px-3 py-2 rounded-xl text-xs font-semibold transition"
+              className="flex items-center gap-1 bg-slate-100 hover:bg-red-50 hover:text-red-600 text-slate-600 px-3 py-2 rounded-xl text-xs font-semibold transition"
               title="Logout"
             >
               <LogOut size={14} />
@@ -111,7 +110,7 @@ export default function AppNavbar({ role }) {
 
             <button
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="lg:hidden p-2 text-gray-600 hover:text-blue-600 rounded-lg"
+              className="lg:hidden p-2 text-slate-600 hover:text-blue-600 rounded-lg"
               aria-label="Toggle menu"
             >
               {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -121,13 +120,13 @@ export default function AppNavbar({ role }) {
       </div>
 
       {mobileMenuOpen && (
-        <div className="lg:hidden border-t border-gray-200 bg-white px-4 pt-2 pb-4 space-y-1">
+        <div className="lg:hidden border-t border-slate-200 bg-white px-4 pt-2 pb-4 space-y-1">
           {links.map((link) => (
             <Link
               key={link.path}
               to={link.path}
               onClick={() => setMobileMenuOpen(false)}
-              className={"block px-3 py-2 rounded-lg text-sm font-semibold transition " + (isActive(link.path) ? "bg-blue-600 text-white" : "text-gray-700 hover:bg-gray-100")}
+              className={"block px-3 py-2 rounded-lg text-sm font-semibold transition " + (isActive(link.path) ? "bg-slate-900 text-white" : "text-slate-700 hover:bg-slate-100")}
             >
               {link.name}
             </Link>
@@ -135,9 +134,9 @@ export default function AppNavbar({ role }) {
           <Link
             to="/student-profile"
             onClick={() => setMobileMenuOpen(false)}
-            className="block px-3 py-2 rounded-lg text-sm font-semibold text-gray-700 hover:bg-gray-100"
+            className="block px-3 py-2 rounded-lg text-sm font-semibold text-slate-700 hover:bg-slate-100"
           >
-            My Profile & Badges
+            My Profile & Settings
           </Link>
           <button
             onClick={handleLogout}

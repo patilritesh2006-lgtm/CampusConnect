@@ -2,7 +2,7 @@
   <img src="./docs/logo.png" alt="CampusConnect - Event & Activity Hub" width="470" />
 </p>
 
-<h1 align="center">🎓 CampusConnect v2.0 — Centralized Learning Community & Event Platform</h1>
+<h1 align="center">🎓 CampusConnect v3.0 — AI-Powered Digital Campus Engagement & Credential Platform</h1>
 
 <p align="center">
   <a href="https://github.com/patilritesh2006-lgtm/CampusConnect/actions"><img src="https://github.com/patilritesh2006-lgtm/CampusConnect/actions/workflows/ci.yml/badge.svg" alt="CI/CD Pipeline" /></a>
@@ -16,7 +16,7 @@
   <a href="https://web.dev/progressive-web-apps/"><img src="https://img.shields.io/badge/PWA-Cross--Platform%20Ready-5A0FC8?logo=pwa&logoColor=white" alt="PWA" /></a>
 </p>
 
-> **CampusConnect** is an enterprise-grade, full-stack college event and student activity ecosystem. It transforms campus life through **time-based rotating QR check-ins**, **verified digital credentials with LinkedIn integration**, **an AI-powered Campus Assistant & Recommendation engine**, **public digital portfolios**, **campus gamification with XP leaderboards**, **automated reminder schedulers**, and **role-based administrative analytics**.
+> **CampusConnect v3.0** is an enterprise-grade digital campus platform connecting **student participation → verified attendance → skills → achievements → credentials → Campus Passport → recruiter verification → institutional intelligence**. Features include **Campus Passport**, **AI Campus Copilot 2.0**, **Evidence-Based Skill Graph**, **Attendance Fraud Detection**, **SHA-256 Cryptographic Credentials**, and **Multi-Tenant Architecture**.
 
 ---
 

@@ -7,53 +7,281 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ======================================================
+// 1. INSTITUTION / MULTI-TENANT (College Entity)
+// ======================================================
 model College {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  address   String?
-  createdAt DateTime @default(now())
-  events    Event[]
-  users     User[]
+  id          String       @id @default(uuid())
+  name        String
+  code        String       @default("MAIN")
+  email       String       @unique
+  domain      String?
+  logoUrl     String?      @map("logo_url")
+  address     String?
+  status      TenantStatus @default(ACTIVE)
+  settings    Json?        @default("{}")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @default(now()) @updatedAt
+
+  events      Event[]
+  users       User[]
+  clubs       Club[]
+  credentials Credential[]
 
   @@map("colleges")
 }
 
+// ======================================================
+// 2. USER & AUTHENTICATION
+// ======================================================
 model User {
-  id                   String         @id @default(uuid())
-  collegeId            String?        @map("college_id")
-  fullName             String         @map("full_name")
-  email                String         @unique
-  password             String
-  profilePhoto         String?        @map("profile_photo")
-  department           String?
-  year                 Int?
-  isVerified           Boolean        @default(false) @map("is_verified")
-  failedLoginAttempts  Int            @default(0) @map("failed_login_attempts")
-  lockedUntil          DateTime?      @map("locked_until")
-  tokenVersion         Int            @default(1) @map("token_version")
-  createdAt            DateTime       @default(now()) @map("created_at")
-  role                 UserRole       @default(STUDENT)
-  username             String?        @unique
-  bio                  String?
-  skills               String[]       @default([])
-  xp                   Int            @default(0)
-  level                Int            @default(1)
-  portfolioPublic      Boolean        @default(true) @map("portfolio_public")
-  githubUrl            String?        @map("github_url")
-  linkedinUrl          String?        @map("linkedin_url")
-  websiteUrl           String?        @map("website_url")
-  registrations        Registration[]
-  certificates         Certificate[]
-  notifications        Notification[]
-  refreshTokens        RefreshToken[]
-  authTokens           AuthToken[]
-  feedbacks            EventFeedback[]
-  college              College?       @relation(fields: [collegeId], references: [id])
+  id                  String         @id @default(uuid())
+  collegeId           String?        @map("college_id")
+  fullName            String         @map("full_name")
+  email               String         @unique
+  password            String
+  profilePhoto        String?        @map("profile_photo")
+  department          String?
+  year                Int?
+  isVerified          Boolean        @default(false) @map("is_verified")
+  failedLoginAttempts Int            @default(0) @map("failed_login_attempts")
+  lockedUntil         DateTime?      @map("locked_until")
+  tokenVersion        Int            @default(1) @map("token_version")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  role                UserRole       @default(STUDENT)
+  username            String?        @unique
+  bio                 String?
+  skills              String[]       @default([])
+  xp                  Int            @default(0)
+  level               Int            @default(1)
+  streakDays          Int            @default(1) @map("streak_days")
+  lastActivityDate    DateTime       @default(now()) @map("last_activity_date")
+  portfolioPublic     Boolean        @default(true) @map("portfolio_public")
+  githubUrl           String?        @map("github_url")
+  linkedinUrl         String?        @map("linkedin_url")
+  websiteUrl          String?        @map("website_url")
+
+  college             College?       @relation(fields: [collegeId], references: [id])
+  registrations       Registration[]
+  certificates        Certificate[]
+  credentials         Credential[]
+  notifications       Notification[]
+  refreshTokens       RefreshToken[]
+  authTokens          AuthToken[]
+  feedbacks           EventFeedback[]
+  studentSkills       StudentSkill[]
+  achievements        StudentAchievement[]
+  fraudEvents         AttendanceRisk[]
+  clubMemberships     ClubMember[]
+  preference          NotificationPreference?
 
   @@map("users")
 }
 
+// ======================================================
+// 3. SKILL GRAPH & EVIDENCE SYSTEM
+// ======================================================
+model Skill {
+  id          String         @id @default(uuid())
+  name        String         @unique
+  category    String         @default("TECHNICAL")
+  description String?
+  createdAt   DateTime       @default(now()) @map("created_at")
+
+  studentSkills StudentSkill[]
+  evidences     SkillEvidence[]
+
+  @@map("skills")
+}
+
+model StudentSkill {
+  id              String         @id @default(uuid())
+  userId          String         @map("user_id")
+  skillId         String         @map("skill_id")
+  score           Int            @default(50)
+  proficiency     String         @default("BEGINNER")
+  isVerified      Boolean        @default(false) @map("is_verified")
+  evidenceCount   Int            @default(0) @map("evidence_count")
+  lastUpdated     DateTime       @default(now()) @updatedAt @map("last_updated")
+
+  user            User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  skill           Skill          @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  evidences       SkillEvidence[]
+
+  @@unique([userId, skillId])
+  @@map("student_skills")
+}
+
+model SkillEvidence {
+  id              String        @id @default(uuid())
+  studentSkillId  String        @map("student_skill_id")
+  skillId         String        @map("skill_id")
+  sourceType      String        @map("source_type")
+  sourceTitle     String        @map("source_title")
+  sourceId        String?       @map("source_id")
+  weightPoints    Int           @default(10) @map("weight_points")
+  createdAt       DateTime      @default(now()) @map("created_at")
+
+  studentSkill    StudentSkill  @relation(fields: [studentSkillId], references: [id], onDelete: Cascade)
+  skill           Skill         @relation(fields: [skillId], references: [id], onDelete: Cascade)
+
+  @@map("skill_evidences")
+}
+
+// ======================================================
+// 4. COMPETENCY & ACHIEVEMENT ENGINE
+// ======================================================
+model Achievement {
+  id            String               @id @default(uuid())
+  code          String               @unique
+  name          String
+  description   String
+  icon          String               @default("Award")
+  rarity        String               @default("COMMON")
+  xpReward      Int                  @default(50) @map("xp_reward")
+  criteriaType  String               @map("criteria_type")
+  criteriaValue Int                  @default(1) @map("criteria_value")
+  createdAt     DateTime             @default(now()) @map("created_at")
+
+  studentAchievements StudentAchievement[]
+
+  @@map("achievements")
+}
+
+model StudentAchievement {
+  id             String      @id @default(uuid())
+  userId         String      @map("user_id")
+  achievementId  String      @map("achievement_id")
+  unlockedAt     DateTime    @default(now()) @map("unlocked_at")
+  isVerified     Boolean     @default(true) @map("is_verified")
+
+  user           User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  achievement    Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, achievementId])
+  @@map("student_achievements")
+}
+
+// ======================================================
+// 5. CRYPTOGRAPHIC VERIFIABLE CREDENTIALS
+// ======================================================
+model Credential {
+  id               String           @id @default(uuid())
+  credentialId     String           @unique @map("credential_id")
+  collegeId        String           @map("college_id")
+  userId           String           @map("user_id")
+  eventId          String?          @map("event_id")
+  title            String
+  description      String
+  issuerName       String           @map("issuer_name")
+  issueDate        DateTime         @default(now()) @map("issue_date")
+  cryptoHash       String           @unique @map("crypto_hash")
+  status           CredentialStatus @default(VALID)
+  revokedAt        DateTime?        @map("revoked_at")
+  revocationReason String?          @map("revocation_reason")
+  metadata         Json?            @default("{}")
+  createdAt        DateTime         @default(now()) @map("created_at")
+
+  college          College          @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event            Event?           @relation(fields: [eventId], references: [id])
+
+  @@map("credentials")
+}
+
+// ======================================================
+// 6. ATTENDANCE FRAUD & RISK DETECTION
+// ======================================================
+model AttendanceRisk {
+  id           String     @id @default(uuid())
+  userId       String     @map("user_id")
+  eventId      String     @map("event_id")
+  riskScore    Int        @default(0) @map("risk_score")
+  riskLevel    RiskLevel  @default(LOW) @map("risk_level")
+  reason       String
+  deviceInfo   String?    @map("device_info")
+  ipAddress    String?    @map("ip_address")
+  attemptCount Int        @default(1) @map("attempt_count")
+  reviewStatus String     @default("PENDING") @map("review_status")
+  createdAt    DateTime   @default(now()) @map("created_at")
+
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event        Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@index([eventId, riskLevel])
+  @@map("attendance_risks")
+}
+
+// ======================================================
+// 7. CLUBS & COMMUNITIES
+// ======================================================
+model Club {
+  id          String        @id @default(uuid())
+  collegeId   String        @map("college_id")
+  name        String
+  code        String        @map("code")
+  description String
+  category    String        @default("TECHNICAL")
+  logoUrl     String?       @map("logo_url")
+  coverUrl    String?       @map("cover_url")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  college     College       @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  members     ClubMember[]
+  events      Event[]
+  announcements ClubAnnouncement[]
+
+  @@unique([collegeId, code])
+  @@map("clubs")
+}
+
+model ClubMember {
+  id        String       @id @default(uuid())
+  clubId    String       @map("club_id")
+  userId    String       @map("user_id")
+  role      ClubUserRole @default(MEMBER)
+  joinedAt  DateTime     @default(now()) @map("joined_at")
+
+  club      Club         @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([clubId, userId])
+  @@map("club_members")
+}
+
+model ClubAnnouncement {
+  id        String   @id @default(uuid())
+  clubId    String   @map("club_id")
+  title     String
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  club      Club     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@map("club_announcements")
+}
+
+// ======================================================
+// 8. NOTIFICATION PREFERENCES
+// ======================================================
+model NotificationPreference {
+  id             String   @id @default(uuid())
+  userId         String   @unique @map("user_id")
+  eventReminders Boolean  @default(true) @map("event_reminders")
+  certificates   Boolean  @default(true)
+  achievements   Boolean  @default(true)
+  clubUpdates    Boolean  @default(true) @map("club_updates")
+  announcements  Boolean  @default(true)
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_preferences")
+}
+
+// ======================================================
+// 9. EVENTS & LIFECYCLE
+// ======================================================
 model Event {
   id                   String          @id @default(uuid())
   title                String
@@ -65,28 +293,41 @@ model Event {
   posterUrl            String?         @map("poster_url")
   collegeId            String
   coordinatorId        String?         @map("coordinator_id")
+  clubId               String?         @map("club_id")
+  agenda               Json?           @default("[]")
+  prerequisites        String[]        @default([])
+  targetAudience       String?         @map("target_audience")
+  learningOutcomes     String[]        @default([]) @map("learning_outcomes")
+  status               EventStatus     @default(UPCOMING)
   createdAt            DateTime        @default(now())
   eventDate            DateTime
-  status               EventStatus     @default(UPCOMING)
-  updatedAt            DateTime        @updatedAt
+  updatedAt            DateTime        @default(now()) @updatedAt
+
   college              College         @relation(fields: [collegeId], references: [id])
+  club                 Club?           @relation(fields: [clubId], references: [id])
   registrations        Registration[]
   certificates         Certificate[]
+  credentials          Credential[]
   feedbacks            EventFeedback[]
   media                EventMedia[]
+  risks                AttendanceRisk[]
 
   @@map("events")
 }
 
+// ======================================================
+// 10. REGISTRATIONS & ATTENDANCE
+// ======================================================
 model Registration {
   id                 String       @id @default(uuid())
   createdAt          DateTime     @default(now())
   attended           Boolean      @default(false)
   attendanceMarkedAt DateTime?    @map("attendance_marked_at")
-  checkinMethod      String?      @default("MANUAL") @map("checkin_method") // QR_SCAN, MANUAL, BULK
+  checkinMethod      String?      @default("MANUAL") @map("checkin_method")
   deviceInfo         String?      @map("device_info")
   eventId            String
   userId             String
+
   event              Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   certificate        Certificate?
@@ -95,6 +336,9 @@ model Registration {
   @@map("registrations")
 }
 
+// ======================================================
+// 11. LEGACY CERTIFICATES & SUPPORTING ENTITIES
+// ======================================================
 model Certificate {
   id              String       @id @default(uuid())
   certificateCode String       @unique @map("certificate_code")
@@ -102,6 +346,7 @@ model Certificate {
   userId          String       @map("user_id")
   eventId         String       @map("event_id")
   registrationId  String       @unique @map("registration_id")
+
   user            User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   event           Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
   registration    Registration @relation(fields: [registrationId], references: [id], onDelete: Cascade)
@@ -115,7 +360,7 @@ model Notification {
   userId    String   @map("user_id")
   title     String
   message   String
-  type      String   @default("INFO") // INFO, REMINDER, ALERT, CERTIFICATE, ANNOUNCEMENT
+  type      String   @default("INFO")
   isRead    Boolean  @default(false) @map("is_read")
   link      String?
   createdAt DateTime @default(now()) @map("created_at")
@@ -128,8 +373,8 @@ model Announcement {
   id        String   @id @default(uuid())
   title     String
   content   String
-  category  String   @default("GENERAL") // GENERAL, IMPORTANT, EVENT, WORKSHOP, COMPETITION
-  priority  String   @default("NORMAL")  // NORMAL, HIGH, URGENT
+  category  String   @default("GENERAL")
+  priority  String   @default("NORMAL")
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -169,10 +414,10 @@ model EventFeedback {
   id              String   @id @default(uuid())
   eventId         String   @map("event_id")
   userId          String   @map("user_id")
-  rating          Int      // 1 to 5 stars
-  experience      String?  // EXCELLENT, GOOD, AVERAGE, POOR
-  organization    Int?     // 1 to 5
-  speakerQuality  Int?     @map("speaker_quality") // 1 to 5
+  rating          Int
+  experience      String?
+  organization    Int?
+  speakerQuality  Int?     @map("speaker_quality")
   wouldRecommend  Boolean  @default(true) @map("would_recommend")
   comments        String?
   createdAt       DateTime @default(now()) @map("created_at")
@@ -188,7 +433,7 @@ model EventMedia {
   id         String   @id @default(uuid())
   eventId    String   @map("event_id")
   mediaUrl   String   @map("media_url")
-  mediaType  String   @default("IMAGE") @map("media_type") // IMAGE, VIDEO
+  mediaType  String   @default("IMAGE") @map("media_type")
   caption    String?
   uploadedBy String?  @map("uploaded_by")
   createdAt  DateTime @default(now()) @map("created_at")
@@ -196,6 +441,15 @@ model EventMedia {
   event      Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 
   @@map("event_media")
+}
+
+// ======================================================
+// 12. ENUMS
+// ======================================================
+enum TenantStatus {
+  ACTIVE
+  SUSPENDED
+  TRIAL
 }
 
 enum AuthTokenType {
@@ -214,6 +468,30 @@ enum UserRole {
 enum EventStatus {
   UPCOMING
   ONGOING
+  DRAFT
+  SUBMITTED
+  APPROVED
+  PUBLISHED
+  REGISTRATION
+  LIVE
   COMPLETED
+  ARCHIVED
   CANCELLED
+}
+
+enum CredentialStatus {
+  VALID
+  REVOKED
+}
+
+enum RiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ClubUserRole {
+  CLUB_ADMIN
+  CLUB_COORDINATOR
+  MEMBER
 }

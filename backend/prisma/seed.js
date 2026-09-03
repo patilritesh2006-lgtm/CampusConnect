@@ -1,37 +1,59 @@
 const { PrismaClient } = require('@prisma/client');
 const bcrypt = require('bcrypt');
+const crypto = require('crypto');
 
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting CampusConnect Database Seeding...\n');
+  console.log('🌱 Starting CampusConnect v3.0 Database Seeding...\n');
 
-  // 1. Create or Find College
-  let college = await prisma.college.findFirst();
-  if (!college) {
-    college = await prisma.college.create({
-      data: {
-        name: 'National Institute of Engineering & Technology',
-        email: 'admin@niet.edu',
-      },
-    });
-    console.log('✅ Created College:', college.name);
-  }
+  // 1. Create or Find College (Tenant A)
+  let college = await prisma.college.upsert({
+    where: { email: 'admin@niet.edu' },
+    update: {
+      name: 'National Institute of Engineering & Technology',
+      domain: 'niet.edu',
+    },
+    create: {
+      name: 'National Institute of Engineering & Technology',
+      code: 'MAIN',
+      email: 'admin@niet.edu',
+      domain: 'niet.edu',
+      address: 'Knowledge Park II, Greater Noida',
+    },
+  });
+  console.log('✅ Seeded Main Institution:', college.name);
 
-  // Common Password Hash for Seed Accounts
+  // 1b. Create Second College for Multi-Tenant Testing (Tenant B)
+  const collegeB = await prisma.college.upsert({
+    where: { email: 'admissions@stanford.edu' },
+    update: {},
+    create: {
+      name: 'Stanford School of Engineering',
+      code: 'STANFORD',
+      email: 'admissions@stanford.edu',
+      domain: 'stanford.edu',
+      address: 'Stanford, California',
+    },
+  });
+  console.log('✅ Seeded Secondary Institution:', collegeB.name);
+
+  // Common Password Hash
   const hashedPassword = await bcrypt.hash('Password123!@#', 10);
 
   // 2. Seed SuperAdmin & Admin
   const adminUser = await prisma.user.upsert({
     where: { email: 'admin@campusconnect.edu' },
-    update: { isVerified: true, role: 'ADMIN' },
+    update: { isVerified: true, role: 'ADMIN', collegeId: college.id },
     create: {
       fullName: 'Dr. Rajesh Sharma (Dean)',
       email: 'admin@campusconnect.edu',
+      username: 'deansharma',
       password: hashedPassword,
       role: 'ADMIN',
       isVerified: true,
       collegeId: college.id,
+      department: 'Administration',
     },
   });
   console.log('✅ Seeded Admin User:', adminUser.email);
@@ -39,10 +61,11 @@ async function main() {
   // 3. Seed Faculty
   const facultyUser = await prisma.user.upsert({
     where: { email: 'faculty@campusconnect.edu' },
-    update: { isVerified: true, role: 'FACULTY' },
+    update: { isVerified: true, role: 'FACULTY', collegeId: college.id },
     create: {
       fullName: 'Prof. Sunita Rao (HOD CS)',
       email: 'faculty@campusconnect.edu',
+      username: 'profrao',
       password: hashedPassword,
       role: 'FACULTY',
       isVerified: true,
@@ -55,10 +78,11 @@ async function main() {
   // 4. Seed Event Coordinator
   const coordUser = await prisma.user.upsert({
     where: { email: 'coordinator@campusconnect.edu' },
-    update: { isVerified: true, role: 'EVENT_COORDINATOR' },
+    update: { isVerified: true, role: 'EVENT_COORDINATOR', collegeId: college.id },
     create: {
       fullName: 'Vikram Malhotra (Lead Organizer)',
       email: 'coordinator@campusconnect.edu',
+      username: 'vikramlead',
       password: hashedPassword,
       role: 'EVENT_COORDINATOR',
       isVerified: true,
@@ -68,245 +92,274 @@ async function main() {
   });
   console.log('✅ Seeded Coordinator User:', coordUser.email);
 
-  // 5. Seed Top Students with XP, Badges & Portfolios
-  const studentsData = [
-    {
+  // 5. Seed Flagship Student User
+  const student = await prisma.user.upsert({
+    where: { email: 'student@campusconnect.edu' },
+    update: {
+      collegeId: college.id,
+      username: 'riteshpatil',
+      xp: 550,
+      level: 5,
+      streakDays: 7,
+      portfolioPublic: true,
+    },
+    create: {
       fullName: 'Ritesh Patil',
       email: 'student@campusconnect.edu',
       username: 'riteshpatil',
+      password: hashedPassword,
+      role: 'STUDENT',
       department: 'Computer Science',
       year: 3,
-      xp: 450,
+      xp: 550,
       level: 5,
-      bio: 'Full Stack Engineer & AI Enthusiast. Building next-gen campus platforms and hackathon projects.',
-      skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL', 'Docker', 'Python'],
+      streakDays: 7,
+      isVerified: true,
+      collegeId: college.id,
+      bio: 'Full Stack Engineer & AI Systems Builder. Developing production-grade campus ecosystems and distributed hackathon projects.',
+      skills: ['React', 'Node.js', 'PostgreSQL', 'Python', 'Machine Learning', 'Docker'],
       githubUrl: 'https://github.com/patilritesh2006-lgtm',
       linkedinUrl: 'https://linkedin.com',
     },
+  });
+  console.log('✅ Seeded Flagship Student:', student.username);
+
+  // 6. Seed Default Achievements
+  const achievementsList = [
     {
-      fullName: 'Aarav Mehta',
-      email: 'aarav@campusconnect.edu',
-      username: 'aaravmehta',
-      department: 'Information Technology',
-      year: 4,
-      xp: 380,
-      level: 4,
-      bio: 'Competitive programmer & Cloud Architect. President of the University Coding Club.',
-      skills: ['Java', 'AWS', 'Kubernetes', 'Algorithms', 'Go'],
+      code: 'FIRST_STEP',
+      name: 'First Step',
+      description: 'Attended your first verified campus event or workshop.',
+      icon: 'Footprints',
+      rarity: 'COMMON',
+      xpReward: 50,
+      criteriaType: 'ATTENDANCE_COUNT',
+      criteriaValue: 1,
     },
     {
-      fullName: 'Priya Nair',
-      email: 'priya@campusconnect.edu',
-      username: 'priyanair',
-      department: 'Data Science',
-      year: 2,
-      xp: 310,
-      level: 4,
-      bio: 'Machine Learning researcher passionate about NLP and Computer Vision.',
-      skills: ['Python', 'PyTorch', 'Data Analysis', 'SQL', 'TensorFlow'],
+      code: 'TECH_EXPLORER',
+      name: 'Technical Explorer',
+      description: 'Attended 3 technical workshops across different technology domains.',
+      icon: 'Compass',
+      rarity: 'RARE',
+      xpReward: 100,
+      criteriaType: 'ATTENDANCE_COUNT',
+      criteriaValue: 3,
     },
     {
-      fullName: 'Rohan Verma',
-      email: 'rohan@campusconnect.edu',
-      username: 'rohanverma',
-      department: 'Electronics & Comm',
-      year: 3,
-      xp: 220,
-      level: 3,
-      bio: 'IoT Developer & Hardware Hacker. Building smart automated devices.',
-      skills: ['C++', 'Embedded Systems', 'Arduino', 'Raspberry Pi'],
+      code: 'HACKATHON_HERO',
+      name: 'Hackathon Hero',
+      description: 'Participated and checked in to an official campus Hackathon.',
+      icon: 'Trophy',
+      rarity: 'EPIC',
+      xpReward: 150,
+      criteriaType: 'HACKATHON_COUNT',
+      criteriaValue: 1,
+    },
+    {
+      code: 'CREDENTIAL_HUNTER',
+      name: 'Credential Hunter',
+      description: 'Earned 2 or more cryptographically verified credentials.',
+      icon: 'Award',
+      rarity: 'EPIC',
+      xpReward: 200,
+      criteriaType: 'CERTIFICATE_COUNT',
+      criteriaValue: 2,
+    },
+    {
+      code: 'CAMPUS_LEGEND',
+      name: 'Campus Legend',
+      description: 'Demonstrated campus excellence by reaching Level 5 with 10+ verified events.',
+      icon: 'Crown',
+      rarity: 'LEGENDARY',
+      xpReward: 500,
+      criteriaType: 'ATTENDANCE_COUNT',
+      criteriaValue: 10,
     },
   ];
 
-  const createdStudents = [];
-  for (const s of studentsData) {
-    const student = await prisma.user.upsert({
-      where: { email: s.email },
-      update: {
-        fullName: s.fullName,
-        username: s.username,
-        department: s.department,
-        year: s.year,
-        xp: s.xp,
-        level: s.level,
-        bio: s.bio,
-        skills: s.skills,
-        githubUrl: s.githubUrl || null,
-        linkedinUrl: s.linkedinUrl || null,
-        portfolioPublic: true,
-        isVerified: true,
-      },
+  for (const ach of achievementsList) {
+    const createdAch = await prisma.achievement.upsert({
+      where: { code: ach.code },
+      update: {},
+      create: ach,
+    });
+
+    // Award First Step & Hackathon Hero to Ritesh Patil
+    if (ach.code === 'FIRST_STEP' || ach.code === 'HACKATHON_HERO') {
+      await prisma.studentAchievement.upsert({
+        where: { userId_achievementId: { userId: student.id, achievementId: createdAch.id } },
+        update: {},
+        create: {
+          userId: student.id,
+          achievementId: createdAch.id,
+          isVerified: true,
+        },
+      });
+    }
+  }
+  console.log('✅ Seeded Achievements Catalog & Student Badges');
+
+  // 7. Seed Skills & Verified Evidence for Student
+  const skillList = [
+    { name: 'Python', category: 'TECHNICAL' },
+    { name: 'React', category: 'TECHNICAL' },
+    { name: 'Machine Learning', category: 'TECHNICAL' },
+    { name: 'Leadership', category: 'LEADERSHIP' },
+  ];
+
+  for (const sk of skillList) {
+    const skill = await prisma.skill.upsert({
+      where: { name: sk.name },
+      update: {},
+      create: { name: sk.name, category: sk.category, description: `Competency in ${sk.name}` },
+    });
+
+    const studentSkill = await prisma.studentSkill.upsert({
+      where: { userId_skillId: { userId: student.id, skillId: skill.id } },
+      update: { score: 85, proficiency: 'ADVANCED', evidenceCount: 3, isVerified: true },
       create: {
-        ...s,
-        password: hashedPassword,
-        role: 'STUDENT',
+        userId: student.id,
+        skillId: skill.id,
+        score: 85,
+        proficiency: 'ADVANCED',
         isVerified: true,
-        portfolioPublic: true,
-        collegeId: college.id,
+        evidenceCount: 3,
       },
     });
-    createdStudents.push(student);
-  }
-  console.log(`✅ Seeded ${createdStudents.length} Students with portfolios & XP.`);
 
-  // 6. Seed Events
-  const eventsData = [
-    {
-      title: 'National Hackathon 2026',
-      description: '36-hour non-stop hackathon tackling AI, Web3, and Green Energy challenges with prize pool of ₹1,00,000.',
-      venue: 'Main Campus Auditorium',
+    await prisma.skillEvidence.createMany({
+      data: [
+        {
+          studentSkillId: studentSkill.id,
+          skillId: skill.id,
+          sourceType: 'EVENT_ATTENDANCE',
+          sourceTitle: `Annual Hackathon 2026 - ${sk.name} Track`,
+          weightPoints: 20,
+        },
+      ],
+      skipDuplicates: true,
+    });
+  }
+  console.log('✅ Seeded Verified Skill Graph & Evidence Records');
+
+  // 8. Seed Events
+  const hackathon = await prisma.event.upsert({
+    where: { id: 'evt-hackathon-2026' },
+    update: {},
+    create: {
+      id: 'evt-hackathon-2026',
+      title: 'Annual Campus Hackathon 2026',
+      description: '36-hour hackathon bringing together students to solve real-world industry challenges.',
+      venue: 'Innovation Hub Auditorium',
       category: 'Hackathon',
-      capacity: 150,
-      eventDate: new Date(Date.now() + 5 * 86400000), // in 5 days
-      status: 'UPCOMING',
+      capacity: 200,
+      eventDate: new Date(Date.now() + 3 * 24 * 3600 * 1000),
+      status: 'PUBLISHED',
+      collegeId: college.id,
+      coordinatorId: coordUser.id,
     },
-    {
-      title: 'Generative AI & LLM Masterclass',
-      description: 'Hands-on workshop exploring prompt engineering, LangChain, RAG architecture, and fine-tuning with industry experts.',
-      venue: 'CS Seminar Hall 2',
+  });
+
+  const aiWorkshop = await prisma.event.upsert({
+    where: { id: 'evt-ai-workshop-2026' },
+    update: {},
+    create: {
+      id: 'evt-ai-workshop-2026',
+      title: 'Deep Learning & Agentic AI Workshop',
+      description: 'Hands-on session on building autonomous multi-agent systems and fine-tuning LLMs.',
+      venue: 'Computer Science Lab 3',
       category: 'Workshop',
       capacity: 80,
-      eventDate: new Date(Date.now() + 10 * 86400000), // in 10 days
-      status: 'UPCOMING',
-    },
-    {
-      title: 'Cloud Native DevOps Bootcamp',
-      description: 'Comprehensive training on Docker containerization, CI/CD pipelines with GitHub Actions, and Kubernetes deployments.',
-      venue: 'Virtual Google Meet',
-      category: 'Bootcamp',
-      capacity: 200,
-      eventDate: new Date(Date.now() - 7 * 86400000), // 7 days ago
+      eventDate: new Date(Date.now() - 5 * 24 * 3600 * 1000),
       status: 'COMPLETED',
+      collegeId: college.id,
+      coordinatorId: coordUser.id,
     },
-  ];
+  });
+  console.log('✅ Seeded Events (Hackathon & AI Workshop)');
 
-  for (const e of eventsData) {
-    let ev = await prisma.event.findFirst({ where: { title: e.title } });
-    if (!ev) {
-      ev = await prisma.event.create({
-        data: {
-          ...e,
-          collegeId: college.id,
-        },
-      });
-    }
-
-    // Seed registrations & certificates for completed event
-    if (ev.status === 'COMPLETED') {
-      for (const student of createdStudents) {
-        const reg = await prisma.registration.upsert({
-          where: {
-            userId_eventId: { userId: student.id, eventId: ev.id },
-          },
-          update: { attended: true },
-          create: {
-            userId: student.id,
-            eventId: ev.id,
-            attended: true,
-            attendanceMarkedAt: new Date(ev.eventDate),
-            checkinMethod: 'QR_SCAN',
-          },
-        });
-
-        // Issue Certificate
-        const certCode = `CC-2026-DEVOPS-${student.id.substring(0, 6).toUpperCase()}`;
-        const existingCert = await prisma.certificate.findUnique({
-          where: { certificateCode: certCode },
-        });
-
-        if (!existingCert) {
-          await prisma.certificate.create({
-            data: {
-              certificateCode: certCode,
-              userId: student.id,
-              eventId: ev.id,
-              registrationId: reg.id,
-              issueDate: new Date(),
-            },
-          });
-        }
-
-        // Seed 5-star feedback
-        const existingFeedback = await prisma.eventFeedback.findUnique({
-          where: {
-            userId_eventId: { userId: student.id, eventId: ev.id },
-          },
-        });
-
-        if (!existingFeedback) {
-          await prisma.eventFeedback.create({
-            data: {
-              userId: student.id,
-              eventId: ev.id,
-              rating: 5,
-              experience: 'EXCELLENT',
-              organization: 5,
-              speakerQuality: 5,
-              wouldRecommend: true,
-              comments: 'Incredible hands-on session! Learned real-world DevOps practices.',
-            },
-          });
-        }
-      }
-    } else {
-      // Register students for upcoming event
-      for (const student of createdStudents.slice(0, 3)) {
-        await prisma.registration.upsert({
-          where: {
-            userId_eventId: { userId: student.id, eventId: ev.id },
-          },
-          update: {},
-          create: {
-            userId: student.id,
-            eventId: ev.id,
-            attended: false,
-          },
-        });
-      }
-    }
-  }
-
-  // 7. Seed Campus Announcements
-  const announcements = [
-    {
-      title: '🎉 National Hackathon 2026 Registrations Open!',
-      content: 'Teams of 2-4 can now register for the National AI Hackathon. Free food, swag kits, and cash prizes!',
-      category: 'Event',
+  // 9. Seed Registration & Attended Status
+  const reg = await prisma.registration.upsert({
+    where: { userId_eventId: { userId: student.id, eventId: aiWorkshop.id } },
+    update: { attended: true },
+    create: {
+      userId: student.id,
+      eventId: aiWorkshop.id,
+      attended: true,
+      attendanceMarkedAt: new Date(),
+      checkinMethod: 'QR_SCAN',
     },
-    {
-      title: '📜 Digital Certificates Now Available for DevOps Bootcamp',
-      content: 'All attendees of the Cloud Native DevOps Bootcamp can now download their verified certificates with QR authentication.',
-      category: 'Academic',
+  });
+
+  // 10. Seed Verifiable Cryptographic Credential
+  const credSecret = process.env.JWT_SECRET || 'secret';
+  const credId = 'CRED-2026-AI-ARCH-7F8A';
+  const hashPayload = `${credId}:${student.id}:${college.id}:${new Date().toISOString()}:${credSecret}`;
+  const cryptoHash = crypto.createHash('sha256').update(hashPayload).digest('hex');
+
+  await prisma.credential.upsert({
+    where: { credentialId: credId },
+    update: {},
+    create: {
+      credentialId: credId,
+      collegeId: college.id,
+      userId: student.id,
+      eventId: aiWorkshop.id,
+      title: 'Certified Agentic AI Systems Practitioner',
+      description: 'Demonstrated practical competence in developing autonomous agents, vector embeddings, and LLM orchestration.',
+      issuerName: 'CampusConnect AI Certification Board',
+      cryptoHash,
+      status: 'VALID',
     },
-  ];
+  });
+  console.log('✅ Seeded Cryptographic Verifiable Credential:', credId);
 
-  for (const ann of announcements) {
-    const existing = await prisma.announcement.findFirst({ where: { title: ann.title } });
-    if (!existing) {
-      await prisma.announcement.create({
-        data: {
-          title: ann.title,
-          content: ann.content,
-          category: ann.category,
-          priority: 'HIGH',
-        },
-      });
-    }
-  }
+  // 11. Seed Campus Clubs
+  const codingClub = await prisma.club.upsert({
+    where: { collegeId_code: { collegeId: college.id, code: 'GDSC' } },
+    update: {},
+    create: {
+      collegeId: college.id,
+      name: 'Google Developer Student Club',
+      code: 'GDSC',
+      description: 'Official campus developer chapter empowering students with modern web, cloud, and AI technologies.',
+      category: 'TECHNICAL',
+    },
+  });
 
-  console.log('\n🎉 Database Seeding Completed Successfully!');
-  console.log('--------------------------------------------------');
-  console.log('🔑 Demo Credentials (Password: Password123!@# for all):');
-  console.log('• Admin       : admin@campusconnect.edu');
-  console.log('• Faculty     : faculty@campusconnect.edu');
-  console.log('• Coordinator : coordinator@campusconnect.edu');
-  console.log('• Student     : student@campusconnect.edu (Username: riteshpatil)');
-  console.log('--------------------------------------------------\n');
+  await prisma.clubMember.upsert({
+    where: { clubId_userId: { clubId: codingClub.id, userId: student.id } },
+    update: {},
+    create: {
+      clubId: codingClub.id,
+      userId: student.id,
+      role: 'CLUB_COORDINATOR',
+    },
+  });
+  console.log('✅ Seeded Club & Coordinator Membership:', codingClub.name);
+
+  // 12. Seed Suspicious Attendance Anomaly for Admin Fraud Console Demo
+  await prisma.attendanceRisk.create({
+    data: {
+      userId: student.id,
+      eventId: hackathon.id,
+      riskScore: 75,
+      riskLevel: 'MEDIUM',
+      reason: 'Rapid invalid QR submission detected prior to official kickoff.',
+      deviceInfo: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+      attemptCount: 2,
+      reviewStatus: 'PENDING',
+    },
+  });
+  console.log('✅ Seeded Attendance Anomaly for Fraud Console Demo');
+
+  console.log('\n🎉 CampusConnect v3.0 Database Seeding Completed Successfully!\n');
 }
 
 main()
   .catch((e) => {
-    console.error('Seeding error:', e);
+    console.error('❌ Seeding error:', e);
     process.exit(1);
   })
   .finally(async () => {

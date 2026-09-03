@@ -1,53 +1,58 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
-import API from "../api/api";
+import api from "../api/api";
 import {
   Bot,
-  X,
   Send,
+  X,
   Sparkles,
-  MessageSquare,
   ExternalLink,
-  ChevronRight,
+  ChevronDown,
+  User,
 } from "lucide-react";
 
 export default function AIAssistant() {
   const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState("");
   const [messages, setMessages] = useState([
     {
-      sender: "ai",
-      text: "👋 Hi! I am your CampusConnect AI Assistant. Ask me about upcoming events, hackathons, your certificates, or attendance status!",
-      suggestedLinks: [],
+      role: "assistant",
+      content:
+        "👋 Hi! I am your AI Campus Copilot. I can recommend events, analyze your verified skills, or summarize your achievements. What would you like to explore?",
+      suggestedActions: [
+        { label: "Top Events This Week", query: "What events should I attend this week?" },
+        { label: "My Verified Skills", query: "What skills am I developing?" },
+        { label: "Semester Achievements", query: "What have I achieved this semester?" },
+      ],
     },
   ]);
+  const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
-    if (isOpen) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (isOpen && typeof messagesEndRef.current?.scrollIntoView === "function") {
+      messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [messages, isOpen]);
 
-  const handleSend = async (e) => {
-    e?.preventDefault();
-    if (!input.trim() || loading) return;
+  const handleSend = async (messageText) => {
+    const query = messageText || input;
+    if (!query.trim() || loading) return;
 
-    const userText = input.trim();
-    setInput("");
-    setMessages((prev) => [...prev, { sender: "user", text: userText }]);
+    const userMsg = { role: "user", content: query };
+    setMessages((prev) => [...prev, userMsg]);
+    if (!messageText) setInput("");
     setLoading(true);
 
     try {
-      const res = await API.post("/ai/assistant", { message: userText });
+      const res = await api.post("/ai/copilot", { message: query });
       if (res.data.success) {
         setMessages((prev) => [
           ...prev,
           {
-            sender: "ai",
-            text: res.data.reply,
-            suggestedLinks: res.data.suggestedLinks || [],
+            role: "assistant",
+            content: res.data.reply,
+            suggestedActions: res.data.suggestedActions || [],
           },
         ]);
       }
@@ -55,9 +60,9 @@ export default function AIAssistant() {
       setMessages((prev) => [
         ...prev,
         {
-          sender: "ai",
-          text: "I encountered an error looking up campus records. Please try again.",
-          suggestedLinks: [],
+          role: "assistant",
+          content: "Sorry, I encountered an issue connecting to the campus intelligence registry. Please try again.",
+          suggestedActions: [],
         },
       ]);
     } finally {
@@ -66,142 +71,122 @@ export default function AIAssistant() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <>
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-5 py-3.5 rounded-full shadow-2xl transition hover:scale-105 border-2 border-white/20 group"
+          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:scale-105 text-white rounded-full shadow-2xl transition duration-300 font-bold text-xs"
         >
-          <div className="relative">
-            <Bot size={22} className="animate-bounce" />
-            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-amber-400 rounded-full"></span>
-          </div>
-          <span className="font-bold text-sm">Ask Campus AI</span>
+          <Sparkles size={16} className="animate-pulse" />
+          <span>AI Campus Copilot</span>
         </button>
       )}
 
-      {/* Chat Drawer Window */}
+      {/* Copilot Chat Drawer */}
       {isOpen && (
-        <div className="bg-white w-[360px] sm:w-[420px] h-[540px] rounded-3xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-4 duration-200">
+        <div className="fixed bottom-6 right-6 z-50 w-[92vw] sm:w-[420px] h-[580px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 p-4 text-white flex justify-between items-center shadow-sm">
+          <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center">
-                <Bot size={20} />
+              <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold">
+                <Bot size={18} />
               </div>
               <div>
                 <h4 className="font-extrabold text-sm flex items-center gap-1.5">
-                  Campus AI Assistant <Sparkles size={14} className="text-amber-300" />
+                  AI Campus Copilot 2.0 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 </h4>
-                <p className="text-[11px] text-blue-100 font-medium">Instant Campus Intelligence</p>
+                <p className="text-[10px] text-slate-400">Context-Aware Academic Intelligence</p>
               </div>
             </div>
+
             <button
               onClick={() => setIsOpen(false)}
-              className="p-1.5 hover:bg-white/20 rounded-xl transition"
+              className="p-1.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition"
             >
               <X size={18} />
             </button>
           </div>
 
           {/* Messages Container */}
-          <div className="flex-1 p-4 overflow-y-auto space-y-3.5 bg-slate-50 text-sm">
-            {messages.map((m, idx) => (
+          <div className="flex-1 p-4 overflow-y-auto space-y-4 bg-slate-50/50">
+            {messages.map((msg, idx) => (
               <div
                 key={idx}
-                className={`flex flex-col ${
-                  m.sender === "user" ? "items-end" : "items-start"
-                }`}
+                className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[85%] p-3.5 rounded-2xl whitespace-pre-line leading-relaxed ${
-                    m.sender === "user"
-                      ? "bg-blue-600 text-white rounded-br-none shadow-sm"
-                      : "bg-white text-slate-800 border border-gray-200 rounded-bl-none shadow-sm"
+                  className={`max-w-[85%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                    msg.role === "user"
+                      ? "bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-500/10"
+                      : "bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm whitespace-pre-line"
                   }`}
                 >
-                  {m.text}
+                  {msg.content}
                 </div>
 
-                {/* Quick Link Recommendations */}
-                {m.suggestedLinks && m.suggestedLinks.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2">
-                    {m.suggestedLinks.map((link, lIdx) => (
-                      <Link
-                        key={lIdx}
-                        to={link.url}
-                        onClick={() => setIsOpen(false)}
-                        className="text-xs bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 font-semibold px-2.5 py-1 rounded-lg flex items-center gap-1 transition"
-                      >
-                        {link.label} <ChevronRight size={12} />
-                      </Link>
-                    ))}
+                {/* Suggested Action Links / Prompts */}
+                {msg.suggestedActions && msg.suggestedActions.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mt-2 max-w-[85%]">
+                    {msg.suggestedActions.map((act, aIdx) =>
+                      act.link ? (
+                        <Link
+                          key={aIdx}
+                          to={act.link}
+                          onClick={() => setIsOpen(false)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-blue-50 border border-blue-200 text-blue-600 rounded-lg text-[11px] font-bold shadow-xs transition"
+                        >
+                          {act.label} <ExternalLink size={11} />
+                        </Link>
+                      ) : (
+                        <button
+                          key={aIdx}
+                          onClick={() => handleSend(act.query || act.label)}
+                          className="inline-flex items-center gap-1 px-2.5 py-1 bg-white hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-lg text-[11px] font-semibold transition"
+                        >
+                          {act.label}
+                        </button>
+                      )
+                    )}
                   </div>
                 )}
               </div>
             ))}
 
             {loading && (
-              <div className="flex items-center gap-2 text-xs text-gray-500 bg-white p-3 rounded-2xl border border-gray-200 w-fit">
-                <div className="flex gap-1">
-                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse"></span>
-                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse delay-75"></span>
-                  <span className="w-1.5 h-1.5 bg-blue-600 rounded-full animate-pulse delay-150"></span>
-                </div>
-                <span>Scanning campus events...</span>
+              <div className="flex items-center gap-2 text-xs text-slate-400 bg-white p-3 rounded-2xl border border-slate-200 w-fit">
+                <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                <span>Copilot is analyzing campus database...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Quick Prompts */}
-          <div className="px-4 py-2 bg-white border-t border-gray-100 flex gap-1.5 overflow-x-auto text-[11px] font-semibold text-gray-600 scrollbar-none">
-            <button
-              onClick={() => {
-                setInput("What hackathons are happening?");
-              }}
-              className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg whitespace-nowrap transition"
-            >
-              🚀 Hackathons
-            </button>
-            <button
-              onClick={() => {
-                setInput("How many certificates do I have?");
-              }}
-              className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg whitespace-nowrap transition"
-            >
-              📜 My Certificates
-            </button>
-            <button
-              onClick={() => {
-                setInput("What is my attendance rate?");
-              }}
-              className="bg-gray-100 hover:bg-gray-200 px-2.5 py-1 rounded-lg whitespace-nowrap transition"
-            >
-              📊 Attendance
-            </button>
-          </div>
-
-          {/* Input Form */}
-          <form onSubmit={handleSend} className="p-3 bg-white border-t border-gray-200 flex gap-2">
+          {/* Input Footer */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              handleSend();
+            }}
+            className="p-3 bg-white border-t border-slate-200 flex items-center gap-2"
+          >
             <input
               type="text"
+              placeholder="Ask about events, skills, or achievements..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything about campus events..."
-              className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs text-slate-800"
             />
             <button
               type="submit"
               disabled={loading || !input.trim()}
-              className="p-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl transition"
+              className="p-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl transition disabled:opacity-40"
             >
-              <Send size={16} />
+              <Send size={15} />
             </button>
           </form>
         </div>
       )}
-    </div>
+    </>
   );
 }

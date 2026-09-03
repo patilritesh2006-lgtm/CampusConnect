@@ -1,5 +1,8 @@
-﻿const prisma = require('../config/prisma');
-const { generateEventQRToken, verifyEventQRToken } = require('../utils/qrService');
+const prisma = require("../config/prisma");
+const { generateEventQRToken, verifyEventQRToken } = require("../utils/qrService");
+const { recordRiskIncident } = require("../services/fraudService");
+const { addSkillEvidence } = require("../services/skillService");
+const { evaluateAndUnlockAchievements } = require("../services/achievementService");
 
 // ======================================================
 // GET ROTATING QR FOR EVENT (Admin / Coordinator)
@@ -16,7 +19,7 @@ const getRotatingQR = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found.',
+        message: "Event not found.",
       });
     }
 
@@ -33,7 +36,7 @@ const getRotatingQR = async (req, res, next) => {
 };
 
 // ======================================================
-// STUDENT QR CHECK-IN
+// STUDENT QR CHECK-IN (With Fraud Logging & Skill Evidence)
 // ======================================================
 const checkInQR = async (req, res, next) => {
   try {
@@ -43,13 +46,23 @@ const checkInQR = async (req, res, next) => {
     if (!eventId || !qrToken) {
       return res.status(400).json({
         success: false,
-        message: 'Event ID and QR token are required.',
+        message: "Event ID and QR token are required.",
       });
     }
 
     // 1. Verify Rotating QR Token Signature and Expiry
     const tokenCheck = verifyEventQRToken(eventId, qrToken);
     if (!tokenCheck.valid) {
+      // Record Attendance Risk Anomaly
+      await recordRiskIncident({
+        userId: studentId,
+        eventId,
+        reason: `Invalid or expired QR scan attempt: ${tokenCheck.message}`,
+        deviceInfo: req.headers["user-agent"] || null,
+        ipAddress: req.ip || null,
+        severity: "MEDIUM",
+      });
+
       return res.status(400).json({
         success: false,
         message: tokenCheck.message,
@@ -64,11 +77,11 @@ const checkInQR = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found.',
+        message: "Event not found.",
       });
     }
 
-    if (event.status === 'COMPLETED' || event.status === 'CANCELLED') {
+    if (event.status === "COMPLETED" || event.status === "CANCELLED" || event.status === "ARCHIVED") {
       return res.status(400).json({
         success: false,
         message: `Check-in closed. Event is marked as ${event.status}.`,
@@ -86,16 +99,34 @@ const checkInQR = async (req, res, next) => {
     });
 
     if (!registration) {
+      await recordRiskIncident({
+        userId: studentId,
+        eventId,
+        reason: "Unregistered student attempted attendance check-in.",
+        deviceInfo: req.headers["user-agent"] || null,
+        ipAddress: req.ip || null,
+        severity: "LOW",
+      });
+
       return res.status(404).json({
         success: false,
-        message: 'You are not registered for this event.',
+        message: "You are not registered for this event.",
       });
     }
 
     if (registration.attended) {
+      await recordRiskIncident({
+        userId: studentId,
+        eventId,
+        reason: "Duplicate QR scan check-in attempted.",
+        deviceInfo: req.headers["user-agent"] || null,
+        ipAddress: req.ip || null,
+        severity: "LOW",
+      });
+
       return res.status(400).json({
         success: false,
-        message: 'You have already checked in for this event.',
+        message: "You have already checked in for this event.",
       });
     }
 
@@ -106,8 +137,8 @@ const checkInQR = async (req, res, next) => {
         data: {
           attended: true,
           attendanceMarkedAt: new Date(),
-          checkinMethod: 'QR_SCAN',
-          deviceInfo: req.headers['user-agent'] || null,
+          checkinMethod: "QR_SCAN",
+          deviceInfo: req.headers["user-agent"] || null,
         },
       });
 
@@ -116,11 +147,11 @@ const checkInQR = async (req, res, next) => {
         where: { id: studentId },
         data: {
           xp: { increment: 50 },
+          lastActivityDate: new Date(),
         },
         select: { id: true, xp: true, level: true },
       });
 
-      // Calculate level based on XP (every 100 XP = 1 Level)
       const calculatedLevel = Math.floor(updatedUser.xp / 100) + 1;
       if (calculatedLevel !== updatedUser.level) {
         await tx.user.update({
@@ -129,23 +160,46 @@ const checkInQR = async (req, res, next) => {
         });
       }
 
-      // Create in-app notification
       await tx.notification.create({
         data: {
           userId: studentId,
           title: `Attendance Confirmed: ${event.title}`,
           message: `Your check-in for "${event.title}" has been verified! +50 XP awarded.`,
-          type: 'INFO',
-          link: '/student-certificates',
+          type: "INFO",
+          link: "/passport",
         },
       });
 
       return reg;
     });
 
+    // 5. Add Skill Evidence & Evaluate Achievements
+    try {
+      const categorySkill = event.category || "Technical Workshop";
+      await addSkillEvidence(studentId, categorySkill, {
+        sourceType: "EVENT_ATTENDANCE",
+        sourceTitle: event.title,
+        sourceId: event.id,
+        weightPoints: 15,
+      });
+
+      if (event.category?.toLowerCase().includes("hackathon")) {
+        await addSkillEvidence(studentId, "Hackathon & Problem Solving", {
+          sourceType: "HACKATHON",
+          sourceTitle: event.title,
+          sourceId: event.id,
+          weightPoints: 20,
+        });
+      }
+
+      await evaluateAndUnlockAchievements(studentId);
+    } catch (e) {
+      console.error("Skill evidence error:", e);
+    }
+
     return res.status(200).json({
       success: true,
-      message: 'Attendance verified successfully! +50 XP earned.',
+      message: "Attendance verified successfully! +50 XP earned.",
       registration: updated,
     });
   } catch (error) {
@@ -163,7 +217,7 @@ const markAttendance = async (req, res, next) => {
     if (!registrationId) {
       return res.status(400).json({
         success: false,
-        message: 'Registration ID is required.',
+        message: "Registration ID is required.",
       });
     }
 
@@ -172,7 +226,7 @@ const markAttendance = async (req, res, next) => {
       data: {
         attended: attended ?? true,
         attendanceMarkedAt: attended ? new Date() : null,
-        checkinMethod: attended ? 'MANUAL' : null,
+        checkinMethod: attended ? "MANUAL" : null,
       },
       include: {
         user: true,
@@ -186,15 +240,25 @@ const markAttendance = async (req, res, next) => {
           userId: reg.userId,
           title: `Attendance Verified: ${reg.event.title}`,
           message: `Your attendance for "${reg.event.title}" was recorded by the organizer.`,
-          type: 'INFO',
-          link: '/student-certificates',
+          type: "INFO",
+          link: "/passport",
         },
       });
+
+      try {
+        await addSkillEvidence(reg.userId, reg.event.category || "Technical Skill", {
+          sourceType: "EVENT_ATTENDANCE",
+          sourceTitle: reg.event.title,
+          sourceId: reg.event.id,
+          weightPoints: 15,
+        });
+        await evaluateAndUnlockAchievements(reg.userId);
+      } catch (e) {}
     }
 
     return res.status(200).json({
       success: true,
-      message: `Attendance marked as ${attended ? 'PRESENT' : 'ABSENT'}.`,
+      message: `Attendance marked as ${attended ? "PRESENT" : "ABSENT"}.`,
       registration: reg,
     });
   } catch (error) {
@@ -212,18 +276,36 @@ const markAllAttended = async (req, res, next) => {
     if (!eventId) {
       return res.status(400).json({
         success: false,
-        message: 'Event ID is required.',
+        message: "Event ID is required.",
       });
     }
+
+    const unMarked = await prisma.registration.findMany({
+      where: { eventId, attended: false },
+      include: { event: true },
+    });
 
     const result = await prisma.registration.updateMany({
       where: { eventId, attended: false },
       data: {
         attended: true,
         attendanceMarkedAt: new Date(),
-        checkinMethod: 'BULK',
+        checkinMethod: "BULK",
       },
     });
+
+    // Update skills & achievements for unMarked students
+    for (const reg of unMarked) {
+      try {
+        await addSkillEvidence(reg.userId, reg.event.category || "Technical Skill", {
+          sourceType: "EVENT_ATTENDANCE",
+          sourceTitle: reg.event.title,
+          sourceId: reg.event.id,
+          weightPoints: 15,
+        });
+        await evaluateAndUnlockAchievements(reg.userId);
+      } catch (e) {}
+    }
 
     return res.status(200).json({
       success: true,
@@ -250,7 +332,7 @@ const exportCSV = async (req, res, next) => {
             user: true,
             certificate: true,
           },
-          orderBy: { createdAt: 'asc' },
+          orderBy: { createdAt: "asc" },
         },
       },
     });
@@ -258,30 +340,29 @@ const exportCSV = async (req, res, next) => {
     if (!event) {
       return res.status(404).json({
         success: false,
-        message: 'Event not found.',
+        message: "Event not found.",
       });
     }
 
-    // Generate CSV String
-    let csv = 'Student Name,Email,Department,Year,Status,Checkin Method,Checked In At,Certificate Code\n';
+    let csv = "Student Name,Email,Department,Year,Status,Checkin Method,Checked In At,Certificate Code\n";
 
     for (const reg of event.registrations) {
       const name = `"${reg.user.fullName.replace(/"/g, '""')}"`;
       const email = `"${reg.user.email}"`;
-      const dept = `"${reg.user.department || 'N/A'}"`;
-      const year = reg.user.year || 'N/A';
-      const status = reg.attended ? 'PRESENT' : 'ABSENT';
-      const method = reg.checkinMethod || 'N/A';
-      const time = reg.attendanceMarkedAt ? new Date(reg.attendanceMarkedAt).toISOString() : 'N/A';
-      const cert = reg.certificate ? reg.certificate.certificateCode : 'N/A';
+      const dept = `"${reg.user.department || "N/A"}"`;
+      const year = reg.user.year || "N/A";
+      const status = reg.attended ? "PRESENT" : "ABSENT";
+      const method = reg.checkinMethod || "N/A";
+      const time = reg.attendanceMarkedAt ? new Date(reg.attendanceMarkedAt).toISOString() : "N/A";
+      const cert = reg.certificate ? reg.certificate.certificateCode : "N/A";
 
       csv += `${name},${email},${dept},${year},${status},${method},${time},${cert}\n`;
     }
 
-    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader("Content-Type", "text/csv");
     res.setHeader(
-      'Content-Disposition',
-      `attachment; filename="Attendance_${event.title.replace(/[^a-zA-Z0-9]/g, '_')}.csv"`
+      "Content-Disposition",
+      `attachment; filename="Attendance_${event.title.replace(/[^a-zA-Z0-9]/g, "_")}.csv"`
     );
 
     return res.status(200).send(csv);

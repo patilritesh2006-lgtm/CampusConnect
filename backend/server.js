@@ -120,6 +120,17 @@ const analyticsRoutes = require('./routes/analyticsRoutes');
 const aiRoutes = require('./routes/aiRoutes');
 const feedbackRoutes = require('./routes/feedbackRoutes');
 const mediaRoutes = require('./routes/mediaRoutes');
+
+// CampusConnect v3 Flagship Routes
+const institutionRoutes = require('./routes/institutionRoutes');
+const passportRoutes = require('./routes/passportRoutes');
+const skillRoutes = require('./routes/skillRoutes');
+const achievementRoutes = require('./routes/achievementRoutes');
+const credentialRoutes = require('./routes/credentialRoutes');
+const fraudRoutes = require('./routes/fraudRoutes');
+const clubRoutes = require('./routes/clubRoutes');
+const intelligenceRoutes = require('./routes/intelligenceRoutes');
+
 const { initScheduler } = require('./services/scheduler');
 
 app.use('/api/auth', authRoutes);
@@ -135,6 +146,16 @@ app.use('/api/analytics', analyticsRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/feedback', feedbackRoutes);
 app.use('/api/media', mediaRoutes);
+
+// v3 Routes
+app.use('/api/institutions', institutionRoutes);
+app.use('/api/passport', passportRoutes);
+app.use('/api/skills', skillRoutes);
+app.use('/api/achievements', achievementRoutes);
+app.use('/api/credentials', credentialRoutes);
+app.use('/api/fraud', fraudRoutes);
+app.use('/api/clubs', clubRoutes);
+app.use('/api/intelligence', intelligenceRoutes);
 
 // ======================================================
 // CENTRALIZED ERROR HANDLER
