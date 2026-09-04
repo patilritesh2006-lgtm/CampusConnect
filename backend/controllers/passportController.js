@@ -15,7 +15,7 @@ const getMyPassport = async (req, res, next) => {
 };
 
 /**
- * Returns public Campus Passport by username (Zero PII leaks).
+ * Returns public Campus Passport by username (Zero PII leaks & respects granular privacy).
  */
 const getPublicPassport = async (req, res, next) => {
   try {
@@ -51,17 +51,35 @@ const getPublicPassport = async (req, res, next) => {
 };
 
 /**
- * Updates student passport privacy & social links.
+ * Updates student passport granular privacy & social links.
  */
 const updatePassportPrivacy = async (req, res, next) => {
   try {
     const userId = req.user.id;
-    const { portfolioPublic, bio, githubUrl, linkedinUrl, websiteUrl } = req.body;
+    const {
+      portfolioPublic,
+      privacyShowSkills,
+      privacyShowCertificates,
+      privacyShowAchievements,
+      privacyShowEvents,
+      privacyShowEmail,
+      privacyShowPhone,
+      bio,
+      githubUrl,
+      linkedinUrl,
+      websiteUrl,
+    } = req.body;
 
     const updated = await prisma.user.update({
       where: { id: userId },
       data: {
         portfolioPublic: portfolioPublic !== undefined ? Boolean(portfolioPublic) : undefined,
+        privacyShowSkills: privacyShowSkills !== undefined ? Boolean(privacyShowSkills) : undefined,
+        privacyShowCertificates: privacyShowCertificates !== undefined ? Boolean(privacyShowCertificates) : undefined,
+        privacyShowAchievements: privacyShowAchievements !== undefined ? Boolean(privacyShowAchievements) : undefined,
+        privacyShowEvents: privacyShowEvents !== undefined ? Boolean(privacyShowEvents) : undefined,
+        privacyShowEmail: privacyShowEmail !== undefined ? Boolean(privacyShowEmail) : undefined,
+        privacyShowPhone: privacyShowPhone !== undefined ? Boolean(privacyShowPhone) : undefined,
         bio: bio !== undefined ? String(bio) : undefined,
         githubUrl: githubUrl !== undefined ? String(githubUrl) : undefined,
         linkedinUrl: linkedinUrl !== undefined ? String(linkedinUrl) : undefined,
@@ -72,6 +90,12 @@ const updatePassportPrivacy = async (req, res, next) => {
         fullName: true,
         username: true,
         portfolioPublic: true,
+        privacyShowSkills: true,
+        privacyShowCertificates: true,
+        privacyShowAchievements: true,
+        privacyShowEvents: true,
+        privacyShowEmail: true,
+        privacyShowPhone: true,
         bio: true,
         githubUrl: true,
         linkedinUrl: true,
@@ -86,7 +110,32 @@ const updatePassportPrivacy = async (req, res, next) => {
 };
 
 /**
- * Helper to build rich structured passport data.
+ * Saves 3-step onboarding answers for new student.
+ */
+const completeOnboarding = async (req, res, next) => {
+  try {
+    const userId = req.user.id;
+    const { department, year, interests = [], careerGoals = [] } = req.body;
+
+    const updated = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        department: department || undefined,
+        year: year ? Number(year) : undefined,
+        interests: Array.isArray(interests) ? interests : [],
+        careerGoals: Array.isArray(careerGoals) ? careerGoals : [],
+        onboardingCompleted: true,
+      },
+    });
+
+    return res.json({ success: true, message: "Onboarding completed successfully.", user: updated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Helper to build rich structured passport data with granular privacy enforcement.
  */
 const buildPassportData = async (userId, isPublic = true) => {
   const user = await prisma.user.findUnique({
@@ -104,7 +153,10 @@ const buildPassportData = async (userId, isPublic = true) => {
       },
       registrations: {
         where: { attended: true },
-        include: { event: { select: { id: true, title: true, category: true, eventDate: true, venue: true } } },
+        include: {
+          event: { select: { id: true, title: true, category: true, eventDate: true, venue: true } },
+          certificate: { select: { certificateCode: true } },
+        },
         orderBy: { createdAt: "desc" },
       },
       clubMemberships: {
@@ -118,6 +170,36 @@ const buildPassportData = async (userId, isPublic = true) => {
   const skillGraph = await getStudentSkillGraph(userId);
   const clientBaseUrl = process.env.CLIENT_BASE_URL || "http://localhost:5173";
   const verificationUrl = `${clientBaseUrl}/verify/student/${user.username || user.id}`;
+
+  // Calculate dynamic engagement score (0-100)
+  const attendedCount = user.registrations.length;
+  const credsCount = user.credentials.length;
+  const achsCount = user.achievements.length;
+  const dynamicEngagementScore = Math.min(
+    98,
+    Math.max(50, Math.round(50 + attendedCount * 6 + credsCount * 8 + achsCount * 4))
+  );
+
+  // Verified Experience Timeline
+  const verifiedExperience = user.registrations.map((r) => ({
+    id: r.id,
+    eventTitle: r.event.title,
+    category: r.event.category,
+    eventDate: r.event.eventDate,
+    venue: r.event.venue,
+    role: r.role || "ATTENDEE",
+    contributionHours: r.contributionHours || 2.0,
+    contributionNotes: r.contributionNotes,
+    certificateCode: r.certificate?.certificateCode || null,
+    isAttendanceVerified: true,
+  }));
+
+  // Apply privacy filters for public view
+  const showSkills = !isPublic || user.privacyShowSkills;
+  const showCreds = !isPublic || user.privacyShowCertificates;
+  const showAchs = !isPublic || user.privacyShowAchievements;
+  const showEvents = !isPublic || user.privacyShowEvents;
+  const showEmail = !isPublic || user.privacyShowEmail;
 
   return {
     identity: {
@@ -133,59 +215,80 @@ const buildPassportData = async (userId, isPublic = true) => {
       githubUrl: user.githubUrl,
       linkedinUrl: user.linkedinUrl,
       websiteUrl: user.websiteUrl,
-      // Strictly exclude email, password, phone, internal IDs on public view
-      ...(isPublic ? {} : { email: user.email, id: user.id }),
+      interests: user.interests || [],
+      careerGoals: user.careerGoals || [],
+      ...(showEmail ? { email: user.email } : {}),
+    },
+    privacySettings: {
+      portfolioPublic: user.portfolioPublic,
+      privacyShowSkills: user.privacyShowSkills,
+      privacyShowCertificates: user.privacyShowCertificates,
+      privacyShowAchievements: user.privacyShowAchievements,
+      privacyShowEvents: user.privacyShowEvents,
+      privacyShowEmail: user.privacyShowEmail,
+      privacyShowPhone: user.privacyShowPhone,
     },
     gamification: {
       xp: user.xp,
       level: user.level,
+      engagementScore: dynamicEngagementScore,
       streakDays: user.streakDays || 1,
-      totalEventsAttended: user.registrations.length,
-      totalCredentialsEarned: user.credentials.length,
-      totalAchievementsUnlocked: user.achievements.length,
+      totalEventsAttended: attendedCount,
+      totalCredentialsEarned: credsCount,
+      totalAchievementsUnlocked: achsCount,
+      totalContributionHours: verifiedExperience.reduce((acc, e) => acc + (e.contributionHours || 0), 0),
     },
-    skills: skillGraph.skills.map((s) => ({
-      name: s.skill.name,
-      category: s.skill.category,
-      score: s.score,
-      proficiency: s.proficiency,
-      evidenceCount: s.evidenceCount,
-      evidences: s.evidences.map((e) => ({
-        sourceType: e.sourceType,
-        sourceTitle: e.sourceTitle,
-        createdAt: e.createdAt,
-      })),
-    })),
-    achievements: user.achievements.map((a) => ({
-      name: a.achievement.name,
-      description: a.achievement.description,
-      icon: a.achievement.icon,
-      rarity: a.achievement.rarity,
-      xpReward: a.achievement.xpReward,
-      unlockedAt: a.unlockedAt,
-    })),
-    credentials: user.credentials.map((c) => ({
-      credentialId: c.credentialId,
-      title: c.title,
-      description: c.description,
-      issuerName: c.issuerName,
-      issueDate: c.issueDate,
-      cryptoHash: c.cryptoHash,
-      eventTitle: c.event?.title,
-      verifyUrl: `${clientBaseUrl}/verify/credential/${c.credentialId}`,
-    })),
+    skills: showSkills
+      ? skillGraph.skills.map((s) => ({
+          name: s.skill.name,
+          category: s.skill.category,
+          score: s.score,
+          proficiency: s.proficiency,
+          evidenceCount: s.evidenceCount,
+          confidenceText: `${s.score}% verified proficiency based on ${s.evidenceCount} evidence items`,
+          evidences: s.evidences.map((e) => ({
+            sourceType: e.sourceType,
+            sourceTitle: e.sourceTitle,
+            createdAt: e.createdAt,
+          })),
+        }))
+      : [],
+    achievements: showAchs
+      ? user.achievements.map((a) => ({
+          name: a.achievement.name,
+          description: a.achievement.description,
+          icon: a.achievement.icon,
+          rarity: a.achievement.rarity,
+          xpReward: a.achievement.xpReward,
+          unlockedAt: a.unlockedAt,
+        }))
+      : [],
+    credentials: showCreds
+      ? user.credentials.map((c) => ({
+          credentialId: c.credentialId,
+          title: c.title,
+          description: c.description,
+          issuerName: c.issuerName,
+          issueDate: c.issueDate,
+          cryptoHash: c.cryptoHash,
+          eventTitle: c.event?.title,
+          verifyUrl: `${clientBaseUrl}/verify/credential/${c.credentialId}`,
+        }))
+      : [],
     clubs: user.clubMemberships.map((cm) => ({
       clubName: cm.club.name,
       category: cm.club.category,
       role: cm.role,
       joinedAt: cm.joinedAt,
     })),
-    recentEvents: user.registrations.slice(0, 10).map((r) => ({
+    verifiedExperience: showEvents ? verifiedExperience : [],
+    recentEvents: showEvents ? user.registrations.slice(0, 10).map((r) => ({
       title: r.event.title,
       category: r.event.category,
       eventDate: r.event.eventDate,
       venue: r.event.venue,
-    })),
+      role: r.role,
+    })) : [],
     verification: {
       isVerified: true,
       badgeText: "Verified by CampusConnect",
@@ -199,4 +302,5 @@ module.exports = {
   getMyPassport,
   getPublicPassport,
   updatePassportPrivacy,
+  completeOnboarding,
 };

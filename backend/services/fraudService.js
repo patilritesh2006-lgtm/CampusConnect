@@ -1,49 +1,66 @@
 const prisma = require("../config/prisma");
+const { logAuditEvent } = require("./auditService");
 
 /**
- * Evaluates and records attendance fraud risk flags.
+ * Attendance Risk Matrix Weights
+ */
+const RISK_FACTORS_WEIGHTS = {
+  QR_REPLAY: 30,
+  MULTIPLE_ATTEMPTS: 15,
+  IMPOSSIBLE_TIMING: 20,
+  DEVICE_MISMATCH: 15,
+  DUPLICATE_ATTENDANCE: 40,
+  UNREGISTERED_ATTEMPT: 20,
+};
+
+/**
+ * Evaluates multi-factor risk and logs an anomaly incident.
  */
 const recordRiskIncident = async ({
   userId,
   eventId,
   reason,
+  factors = ["MULTIPLE_ATTEMPTS"],
   deviceInfo = null,
   ipAddress = null,
   severity = "MEDIUM",
 }) => {
   if (!userId || !eventId) return null;
 
-  // Check recent failed attempts for this user & event in last 5 minutes
-  const fiveMinsAgo = new Date(Date.now() - 5 * 60 * 1000);
+  // 1. Calculate weighted multi-factor risk score
+  let calculatedScore = 20;
+  factors.forEach((factor) => {
+    calculatedScore += RISK_FACTORS_WEIGHTS[factor] || 15;
+  });
+
+  // Check recent failed attempts in past 10 minutes
+  const tenMinsAgo = new Date(Date.now() - 10 * 60 * 1000);
   const recentAttempts = await prisma.attendanceRisk.count({
     where: {
       userId,
       eventId,
-      createdAt: { gte: fiveMinsAgo },
+      createdAt: { gte: tenMinsAgo },
     },
   });
 
-  let riskScore = 40;
-  let riskLevel = severity;
-
-  if (recentAttempts >= 3 || severity === "HIGH") {
-    riskScore = Math.min(95, 60 + (recentAttempts + 1) * 10);
-    riskLevel = "HIGH";
-  } else if (recentAttempts >= 1 || severity === "MEDIUM") {
-    riskScore = 55;
-    riskLevel = "MEDIUM";
-  } else {
-    riskScore = 25;
-    riskLevel = "LOW";
+  if (recentAttempts >= 2) {
+    calculatedScore += recentAttempts * 10;
   }
+
+  calculatedScore = Math.min(98, Math.max(15, calculatedScore));
+
+  let riskLevel = "LOW";
+  if (calculatedScore >= 70) riskLevel = "HIGH";
+  else if (calculatedScore >= 45) riskLevel = "MEDIUM";
 
   const riskIncident = await prisma.attendanceRisk.create({
     data: {
       userId,
       eventId,
-      riskScore,
+      riskScore: calculatedScore,
       riskLevel,
       reason,
+      riskFactors: factors,
       deviceInfo,
       ipAddress,
       attemptCount: recentAttempts + 1,
@@ -51,10 +68,10 @@ const recordRiskIncident = async ({
     },
     include: {
       user: {
-        select: { id: true, fullName: true, email: true, department: true },
+        select: { id: true, fullName: true, email: true, department: true, collegeId: true },
       },
       event: {
-        select: { id: true, title: true, eventDate: true },
+        select: { id: true, title: true, eventDate: true, collegeId: true },
       },
     },
   });
@@ -91,14 +108,44 @@ const getFraudIncidents = async ({ collegeId, riskLevel, reviewStatus }) => {
 };
 
 /**
- * Admin resolves a fraud incident flag.
+ * Admin resolves, approves or rejects a flagged attendance risk.
  */
-const resolveIncident = async (incidentId, newStatus) => {
-  const incident = await prisma.attendanceRisk.update({
+const resolveIncident = async (incidentId, newStatus, adminUser = null) => {
+  const incident = await prisma.attendanceRisk.findUnique({
+    where: { id: incidentId },
+    include: { event: true },
+  });
+
+  if (!incident) {
+    throw new Error("Risk incident not found.");
+  }
+
+  const updated = await prisma.attendanceRisk.update({
     where: { id: incidentId },
     data: { reviewStatus: newStatus },
   });
-  return incident;
+
+  // If approved by admin, verify attendance
+  if (newStatus === "APPROVED" || newStatus === "RESOLVED_VALID") {
+    await prisma.registration.updateMany({
+      where: { userId: incident.userId, eventId: incident.eventId },
+      data: { attended: true, attendanceMarkedAt: new Date(), checkinMethod: "ADMIN_OVERRIDE" },
+    });
+  }
+
+  // Audit log
+  if (adminUser) {
+    await logAuditEvent({
+      collegeId: incident.event.collegeId,
+      actorId: adminUser.id,
+      action: `FRAUD_ALERT_${newStatus}`,
+      entity: "AttendanceRisk",
+      entityId: incident.id,
+      metadata: { userId: incident.userId, eventId: incident.eventId, riskScore: incident.riskScore },
+    });
+  }
+
+  return updated;
 };
 
 module.exports = {

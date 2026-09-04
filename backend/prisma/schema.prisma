@@ -27,6 +27,7 @@ model College {
   users       User[]
   clubs       Club[]
   credentials Credential[]
+  auditLogs   AuditLog[]
 
   @@map("colleges")
 }
@@ -54,9 +55,22 @@ model User {
   skills              String[]       @default([])
   xp                  Int            @default(0)
   level               Int            @default(1)
+  engagementScore     Int            @default(75) @map("engagement_score")
   streakDays          Int            @default(1) @map("streak_days")
   lastActivityDate    DateTime       @default(now()) @map("last_activity_date")
-  portfolioPublic     Boolean        @default(true) @map("portfolio_public")
+  
+  // Privacy & Onboarding Controls
+  portfolioPublic          Boolean   @default(true) @map("portfolio_public")
+  privacyShowSkills        Boolean   @default(true) @map("privacy_show_skills")
+  privacyShowCertificates  Boolean   @default(true) @map("privacy_show_certificates")
+  privacyShowAchievements  Boolean   @default(true) @map("privacy_show_achievements")
+  privacyShowEvents        Boolean   @default(true) @map("privacy_show_events")
+  privacyShowEmail         Boolean   @default(false) @map("privacy_show_email")
+  privacyShowPhone         Boolean   @default(false) @map("privacy_show_phone")
+  onboardingCompleted      Boolean   @default(true) @map("onboarding_completed")
+  interests                String[]  @default([])
+  careerGoals              String[]  @default([])
+
   githubUrl           String?        @map("github_url")
   linkedinUrl         String?        @map("linkedin_url")
   websiteUrl          String?        @map("website_url")
@@ -74,6 +88,7 @@ model User {
   fraudEvents         AttendanceRisk[]
   clubMemberships     ClubMember[]
   preference          NotificationPreference?
+  auditLogs           AuditLog[]
 
   @@map("users")
 }
@@ -199,6 +214,7 @@ model AttendanceRisk {
   riskScore    Int        @default(0) @map("risk_score")
   riskLevel    RiskLevel  @default(LOW) @map("risk_level")
   reason       String
+  riskFactors  String[]   @default([]) @map("risk_factors")
   deviceInfo   String?    @map("device_info")
   ipAddress    String?    @map("ip_address")
   attemptCount Int        @default(1) @map("attempt_count")
@@ -272,6 +288,8 @@ model NotificationPreference {
   achievements   Boolean  @default(true)
   clubUpdates    Boolean  @default(true) @map("club_updates")
   announcements  Boolean  @default(true)
+  emailAlerts    Boolean  @default(true) @map("email_alerts")
+  pushAlerts     Boolean  @default(true) @map("push_alerts")
   updatedAt      DateTime @updatedAt @map("updated_at")
 
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -298,7 +316,7 @@ model Event {
   prerequisites        String[]        @default([])
   targetAudience       String?         @map("target_audience")
   learningOutcomes     String[]        @default([]) @map("learning_outcomes")
-  status               EventStatus     @default(UPCOMING)
+  status               EventStatus     @default(PUBLISHED)
   createdAt            DateTime        @default(now())
   eventDate            DateTime
   updatedAt            DateTime        @default(now()) @updatedAt
@@ -316,20 +334,23 @@ model Event {
 }
 
 // ======================================================
-// 10. REGISTRATIONS & ATTENDANCE
+// 10. REGISTRATIONS & EVENT CONTRIBUTION ROLES
 // ======================================================
 model Registration {
-  id                 String       @id @default(uuid())
-  createdAt          DateTime     @default(now())
-  attended           Boolean      @default(false)
-  attendanceMarkedAt DateTime?    @map("attendance_marked_at")
-  checkinMethod      String?      @default("MANUAL") @map("checkin_method")
-  deviceInfo         String?      @map("device_info")
+  id                 String            @id @default(uuid())
+  createdAt          DateTime          @default(now())
+  attended           Boolean           @default(false)
+  attendanceMarkedAt DateTime?         @map("attendance_marked_at")
+  checkinMethod      String?           @default("MANUAL") @map("checkin_method")
+  deviceInfo         String?           @map("device_info")
+  role               ContributionRole  @default(ATTENDEE)
+  contributionHours  Float?            @default(2.0) @map("contribution_hours")
+  contributionNotes  String?           @map("contribution_notes")
   eventId            String
   userId             String
 
-  event              Event        @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event              Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   certificate        Certificate?
 
   @@unique([userId, eventId])
@@ -337,7 +358,28 @@ model Registration {
 }
 
 // ======================================================
-// 11. LEGACY CERTIFICATES & SUPPORTING ENTITIES
+// 11. AUDIT LOGS FOR INSTITUTIONAL INTEGRITY
+// ======================================================
+model AuditLog {
+  id         String   @id @default(uuid())
+  collegeId  String   @map("college_id")
+  actorId    String   @map("actor_id")
+  action     String   // e.g. CREDENTIAL_ISSUED, CREDENTIAL_REVOKED, ATTENDANCE_OVERRIDE, EVENT_APPROVED
+  entity     String   // e.g. Credential, Event, Registration, User
+  entityId   String   @map("entity_id")
+  ipAddress  String?  @map("ip_address")
+  metadata   Json?    @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  college    College  @relation(fields: [collegeId], references: [id], onDelete: Cascade)
+  actor      User     @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@index([collegeId, createdAt])
+  @@map("audit_logs")
+}
+
+// ======================================================
+// 12. LEGACY CERTIFICATES & SUPPORTING ENTITIES
 // ======================================================
 model Certificate {
   id              String       @id @default(uuid())
@@ -444,7 +486,7 @@ model EventMedia {
 }
 
 // ======================================================
-// 12. ENUMS
+// 13. ENUMS
 // ======================================================
 enum TenantStatus {
   ACTIVE
@@ -469,12 +511,16 @@ enum EventStatus {
   UPCOMING
   ONGOING
   DRAFT
-  SUBMITTED
+  PENDING_APPROVAL
   APPROVED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
   PUBLISHED
   REGISTRATION
   LIVE
   COMPLETED
+  FEEDBACK
+  CERTIFICATE_ISSUED
   ARCHIVED
   CANCELLED
 }
@@ -494,4 +540,15 @@ enum ClubUserRole {
   CLUB_ADMIN
   CLUB_COORDINATOR
   MEMBER
+}
+
+enum ContributionRole {
+  ATTENDEE
+  VOLUNTEER
+  ORGANIZER
+  SPEAKER
+  MENTOR
+  JUDGE
+  COORDINATOR
+  WINNER
 }

@@ -7,8 +7,8 @@ import {
   X,
   Sparkles,
   ExternalLink,
-  ChevronDown,
-  User,
+  Zap,
+  Rocket,
 } from "lucide-react";
 
 export default function AIAssistant() {
@@ -17,11 +17,11 @@ export default function AIAssistant() {
     {
       role: "assistant",
       content:
-        "👋 Hi! I am your AI Campus Copilot. I can recommend events, analyze your verified skills, or summarize your achievements. What would you like to explore?",
+        "👋 Hi! I am your AI Campus Copilot 2.0. I can perform instant event registrations, audit your internship readiness, and calculate your verified skill graph. What would you like to do?",
       suggestedActions: [
-        { label: "Top Events This Week", query: "What events should I attend this week?" },
-        { label: "My Verified Skills", query: "What skills am I developing?" },
-        { label: "Semester Achievements", query: "What have I achieved this semester?" },
+        { label: "📊 Internship Readiness Audit", query: "What am I missing to become internship-ready?" },
+        { label: "📅 Top Events This Week", query: "What events should I attend this week?" },
+        { label: "🎯 My Verified Skills", query: "What skills am I developing?" },
       ],
     },
   ]);
@@ -85,7 +85,7 @@ export default function AIAssistant() {
 
       {/* Copilot Chat Drawer */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[92vw] sm:w-[420px] h-[580px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
+        <div className="fixed bottom-6 right-6 z-50 w-[92vw] sm:w-[440px] h-[600px] bg-white rounded-3xl shadow-2xl border border-slate-200 flex flex-col overflow-hidden animate-in fade-in slide-in-from-bottom-5 duration-300">
           {/* Header */}
           <div className="bg-slate-900 text-white p-4 flex items-center justify-between">
             <div className="flex items-center gap-2.5">
@@ -96,7 +96,7 @@ export default function AIAssistant() {
                 <h4 className="font-extrabold text-sm flex items-center gap-1.5">
                   AI Campus Copilot 2.0 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                 </h4>
-                <p className="text-[10px] text-slate-400">Context-Aware Academic Intelligence</p>
+                <p className="text-[10px] text-slate-400">Context-Aware Academic Intelligence & Actions</p>
               </div>
             </div>
 
@@ -116,10 +116,10 @@ export default function AIAssistant() {
                 className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3.5 text-xs leading-relaxed ${
+                  className={`max-w-[90%] rounded-2xl p-3.5 text-xs leading-relaxed ${
                     msg.role === "user"
-                      ? "bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-500/10"
-                      : "bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-sm whitespace-pre-line"
+                      ? "bg-blue-600 text-white rounded-br-none shadow-md shadow-blue-500/10 font-medium"
+                      : "bg-white text-slate-800 border border-slate-200 rounded-bl-none shadow-xs whitespace-pre-line font-normal"
                   }`}
                 >
                   {msg.content}
@@ -127,7 +127,7 @@ export default function AIAssistant() {
 
                 {/* Suggested Action Links / Prompts */}
                 {msg.suggestedActions && msg.suggestedActions.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-2 max-w-[85%]">
+                  <div className="flex flex-wrap gap-1.5 mt-2 max-w-[90%]">
                     {msg.suggestedActions.map((act, aIdx) =>
                       act.link ? (
                         <Link
@@ -156,7 +156,7 @@ export default function AIAssistant() {
             {loading && (
               <div className="flex items-center gap-2 text-xs text-slate-400 bg-white p-3 rounded-2xl border border-slate-200 w-fit">
                 <div className="w-3.5 h-3.5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-                <span>Copilot is analyzing campus database...</span>
+                <span>Copilot is querying campus intelligence registry...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
@@ -172,10 +172,10 @@ export default function AIAssistant() {
           >
             <input
               type="text"
-              placeholder="Ask about events, skills, or achievements..."
+              placeholder="Ask Copilot or say 'Register me for #1'..."
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs text-slate-800"
+              className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-xs text-slate-800 font-medium"
             />
             <button
               type="submit"

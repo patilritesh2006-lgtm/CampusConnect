@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting CampusConnect v3.0 Database Seeding...\n');
+  console.log('🌱 Starting CampusConnect v3.1 Database Seeding...\n');
 
   // 1. Create or Find College (Tenant A)
   let college = await prisma.college.upsert({
@@ -100,8 +100,17 @@ async function main() {
       username: 'riteshpatil',
       xp: 550,
       level: 5,
+      engagementScore: 87,
       streakDays: 7,
       portfolioPublic: true,
+      privacyShowSkills: true,
+      privacyShowCertificates: true,
+      privacyShowAchievements: true,
+      privacyShowEvents: true,
+      privacyShowEmail: false,
+      onboardingCompleted: true,
+      interests: ['Artificial Intelligence', 'Web Development', 'Machine Learning', 'Leadership'],
+      careerGoals: ['Internship Ready', 'Hackathon Winner', 'Verifiable Credentials'],
     },
     create: {
       fullName: 'Ritesh Patil',
@@ -113,11 +122,14 @@ async function main() {
       year: 3,
       xp: 550,
       level: 5,
+      engagementScore: 87,
       streakDays: 7,
       isVerified: true,
       collegeId: college.id,
       bio: 'Full Stack Engineer & AI Systems Builder. Developing production-grade campus ecosystems and distributed hackathon projects.',
       skills: ['React', 'Node.js', 'PostgreSQL', 'Python', 'Machine Learning', 'Docker'],
+      interests: ['Artificial Intelligence', 'Web Development', 'Machine Learning', 'Leadership'],
+      careerGoals: ['Internship Ready', 'Hackathon Winner', 'Verifiable Credentials'],
       githubUrl: 'https://github.com/patilritesh2006-lgtm',
       linkedinUrl: 'https://linkedin.com',
     },
@@ -185,7 +197,6 @@ async function main() {
       create: ach,
     });
 
-    // Award First Step & Hackathon Hero to Ritesh Patil
     if (ach.code === 'FIRST_STEP' || ach.code === 'HACKATHON_HERO') {
       await prisma.studentAchievement.upsert({
         where: { userId_achievementId: { userId: student.id, achievementId: createdAch.id } },
@@ -217,11 +228,11 @@ async function main() {
 
     const studentSkill = await prisma.studentSkill.upsert({
       where: { userId_skillId: { userId: student.id, skillId: skill.id } },
-      update: { score: 85, proficiency: 'ADVANCED', evidenceCount: 3, isVerified: true },
+      update: { score: 88, proficiency: 'ADVANCED', evidenceCount: 3, isVerified: true },
       create: {
         userId: student.id,
         skillId: skill.id,
-        score: 85,
+        score: 88,
         proficiency: 'ADVANCED',
         isVerified: true,
         evidenceCount: 3,
@@ -254,8 +265,8 @@ async function main() {
       venue: 'Innovation Hub Auditorium',
       category: 'Hackathon',
       capacity: 200,
-      eventDate: new Date(Date.now() + 3 * 24 * 3600 * 1000),
-      status: 'PUBLISHED',
+      eventDate: new Date(Date.now() - 20 * 24 * 3600 * 1000),
+      status: 'COMPLETED',
       collegeId: college.id,
       coordinatorId: coordUser.id,
     },
@@ -279,18 +290,47 @@ async function main() {
   });
   console.log('✅ Seeded Events (Hackathon & AI Workshop)');
 
-  // 9. Seed Registration & Attended Status
-  const reg = await prisma.registration.upsert({
+  // 9. Seed Registrations with Granular Roles & Verified Contributions
+  await prisma.registration.upsert({
     where: { userId_eventId: { userId: student.id, eventId: aiWorkshop.id } },
-    update: { attended: true },
+    update: {
+      attended: true,
+      role: 'SPEAKER',
+      contributionHours: 4.0,
+      contributionNotes: 'Delivered technical keynote on LangChain & Agent Orchestration',
+    },
     create: {
       userId: student.id,
       eventId: aiWorkshop.id,
       attended: true,
+      role: 'SPEAKER',
+      contributionHours: 4.0,
+      contributionNotes: 'Delivered technical keynote on LangChain & Agent Orchestration',
       attendanceMarkedAt: new Date(),
       checkinMethod: 'QR_SCAN',
     },
   });
+
+  await prisma.registration.upsert({
+    where: { userId_eventId: { userId: student.id, eventId: hackathon.id } },
+    update: {
+      attended: true,
+      role: 'WINNER',
+      contributionHours: 36.0,
+      contributionNotes: 'First place in Open Innovation track',
+    },
+    create: {
+      userId: student.id,
+      eventId: hackathon.id,
+      attended: true,
+      role: 'WINNER',
+      contributionHours: 36.0,
+      contributionNotes: 'First place in Open Innovation track',
+      attendanceMarkedAt: new Date(),
+      checkinMethod: 'QR_SCAN',
+    },
+  });
+  console.log('✅ Seeded Verified Experience (Speaker & Winner Roles)');
 
   // 10. Seed Verifiable Cryptographic Credential
   const credSecret = process.env.JWT_SECRET || 'secret';
@@ -330,7 +370,7 @@ async function main() {
 
   await prisma.clubMember.upsert({
     where: { clubId_userId: { clubId: codingClub.id, userId: student.id } },
-    update: {},
+    update: { role: 'CLUB_COORDINATOR' },
     create: {
       clubId: codingClub.id,
       userId: student.id,
@@ -344,17 +384,31 @@ async function main() {
     data: {
       userId: student.id,
       eventId: hackathon.id,
-      riskScore: 75,
-      riskLevel: 'MEDIUM',
-      reason: 'Rapid invalid QR submission detected prior to official kickoff.',
+      riskScore: 78,
+      riskLevel: 'HIGH',
+      reason: 'QR token replay detected with multiple rapid failed attempts.',
+      riskFactors: ['QR_REPLAY', 'MULTIPLE_ATTEMPTS'],
       deviceInfo: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
-      attemptCount: 2,
+      attemptCount: 3,
       reviewStatus: 'PENDING',
     },
   });
   console.log('✅ Seeded Attendance Anomaly for Fraud Console Demo');
 
-  console.log('\n🎉 CampusConnect v3.0 Database Seeding Completed Successfully!\n');
+  // 13. Seed Audit Log Entry
+  await prisma.auditLog.create({
+    data: {
+      collegeId: college.id,
+      actorId: adminUser.id,
+      action: 'CREDENTIAL_ISSUED',
+      entity: 'Credential',
+      entityId: credId,
+      metadata: { recipient: student.email, title: 'Certified Agentic AI Systems Practitioner' },
+    },
+  });
+  console.log('✅ Seeded Institutional Audit Log');
+
+  console.log('\n🎉 CampusConnect v3.1 Database Seeding Completed Successfully!\n');
 }
 
 main()

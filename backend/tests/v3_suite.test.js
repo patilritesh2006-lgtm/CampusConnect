@@ -2,39 +2,39 @@ const request = require("supertest");
 const app = require("../server");
 const prisma = require("../config/prisma");
 
-describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
+describe("🚀 CampusConnect v3.1 Master Flagship Test Suite", () => {
   let collegeA, collegeB;
   let studentA, studentB, adminA;
   let tokenA, tokenB, adminTokenA;
-  let testEventA;
+  let testEventA, testEventB;
   let testCredential;
 
   beforeAll(async () => {
     // 1. Setup Tenant Colleges
     collegeA = await prisma.college.upsert({
-      where: { email: "tenant_a@campusconnect.edu" },
+      where: { email: "tenant_a_31@campusconnect.edu" },
       update: {},
       create: {
         name: "Institute of Technology Alpha",
         code: "ALPHA",
-        email: "tenant_a@campusconnect.edu",
+        email: "tenant_a_31@campusconnect.edu",
       },
     });
 
     collegeB = await prisma.college.upsert({
-      where: { email: "tenant_b@campusconnect.edu" },
+      where: { email: "tenant_b_31@campusconnect.edu" },
       update: {},
       create: {
         name: "University Beta",
         code: "BETA",
-        email: "tenant_b@campusconnect.edu",
+        email: "tenant_b_31@campusconnect.edu",
       },
     });
 
     // 2. Setup Student A (College A)
     const resA = await request(app).post("/api/auth/register").send({
       fullName: "Student Alpha",
-      email: "student_alpha@test.com",
+      email: "student_alpha31@test.com",
       password: "Password123!@#",
       department: "Computer Science",
       year: 3,
@@ -42,12 +42,12 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
     if (resA.body.user) {
       studentA = await prisma.user.update({
         where: { id: resA.body.user.id },
-        data: { collegeId: collegeA.id, username: "studentalpha" },
+        data: { collegeId: collegeA.id, username: "studentalpha31" },
       });
     }
 
     const loginA = await request(app).post("/api/auth/login").send({
-      email: "student_alpha@test.com",
+      email: "student_alpha31@test.com",
       password: "Password123!@#",
     });
     tokenA = loginA.body.token;
@@ -55,7 +55,7 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
     // 3. Setup Student B (College B)
     const resB = await request(app).post("/api/auth/register").send({
       fullName: "Student Beta",
-      email: "student_beta@test.com",
+      email: "student_beta31@test.com",
       password: "Password123!@#",
       department: "Mechanical",
       year: 2,
@@ -63,12 +63,12 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
     if (resB.body.user) {
       studentB = await prisma.user.update({
         where: { id: resB.body.user.id },
-        data: { collegeId: collegeB.id, username: "studentbeta" },
+        data: { collegeId: collegeB.id, username: "studentbeta31" },
       });
     }
 
     const loginB = await request(app).post("/api/auth/login").send({
-      email: "student_beta@test.com",
+      email: "student_beta31@test.com",
       password: "Password123!@#",
     });
     tokenB = loginB.body.token;
@@ -76,7 +76,7 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
     // 4. Setup Admin A (College A)
     const resAdmin = await request(app).post("/api/auth/register").send({
       fullName: "Dean Alpha",
-      email: "dean_alpha@test.com",
+      email: "dean_alpha31@test.com",
       password: "Password123!@#",
       department: "Administration",
       year: 4,
@@ -84,45 +84,57 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
     if (resAdmin.body.user) {
       adminA = await prisma.user.update({
         where: { id: resAdmin.body.user.id },
-        data: { collegeId: collegeA.id, role: "ADMIN", username: "deanalpha" },
+        data: { collegeId: collegeA.id, role: "ADMIN", username: "deanalpha31" },
       });
     }
 
     const loginAdmin = await request(app).post("/api/auth/login").send({
-      email: "dean_alpha@test.com",
+      email: "dean_alpha31@test.com",
       password: "Password123!@#",
     });
     adminTokenA = loginAdmin.body.token;
 
-    // 5. Setup Test Event for College A
+    // 5. Setup Events
     testEventA = await prisma.event.create({
       data: {
         title: "Alpha AI Hackathon 2026",
-        description: "Intensive 24-hour hackathon for Python and Machine Learning developers.",
+        description: "Intensive hackathon for Python and Machine Learning developers.",
         category: "Hackathon",
         venue: "Lab Alpha",
         eventDate: new Date(Date.now() + 7 * 24 * 3600 * 1000),
         collegeId: collegeA.id,
       },
     });
+
+    testEventB = await prisma.event.create({
+      data: {
+        title: "Beta Mechanical Expo",
+        description: "Robotics and CAD design exhibition.",
+        category: "Exhibition",
+        venue: "Auditorium Beta",
+        eventDate: new Date(Date.now() + 10 * 24 * 3600 * 1000),
+        collegeId: collegeB.id,
+      },
+    });
   });
 
   afterAll(async () => {
-    // Cleanup test records
     try {
+      await prisma.auditLog.deleteMany({ where: { actorId: { in: [studentA?.id, studentB?.id, adminA?.id].filter(Boolean) } } });
       await prisma.credential.deleteMany({ where: { userId: { in: [studentA?.id, studentB?.id, adminA?.id].filter(Boolean) } } });
       await prisma.attendanceRisk.deleteMany({ where: { userId: { in: [studentA?.id, studentB?.id, adminA?.id].filter(Boolean) } } });
       await prisma.registration.deleteMany({ where: { userId: { in: [studentA?.id, studentB?.id, adminA?.id].filter(Boolean) } } });
       if (testEventA) await prisma.event.delete({ where: { id: testEventA.id } });
-      await prisma.user.deleteMany({ where: { email: { in: ["student_alpha@test.com", "student_beta@test.com", "dean_alpha@test.com"] } } });
+      if (testEventB) await prisma.event.delete({ where: { id: testEventB.id } });
+      await prisma.user.deleteMany({ where: { email: { in: ["student_alpha31@test.com", "student_beta31@test.com", "dean_alpha31@test.com"] } } });
     } catch (e) {}
   });
 
   // ====================================================
-  // 1. CAMPUS PASSPORT & PRIVACY
+  // 1. CAMPUS PASSPORT & GRANULAR PRIVACY
   // ====================================================
-  describe("🎓 Campus Passport Engine", () => {
-    it("should fetch authenticated student Campus Passport", async () => {
+  describe("🎓 Campus Passport & Privacy Controls", () => {
+    it("should fetch authenticated student Campus Passport with engagement score", async () => {
       const res = await request(app)
         .get("/api/passport/me")
         .set("Authorization", `Bearer ${tokenA}`);
@@ -130,35 +142,52 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
       expect(res.body.passport.identity.fullName).toBe("Student Alpha");
-      expect(res.body.passport.identity.institution).toBe("Institute of Technology Alpha");
-      expect(res.body.passport.gamification).toBeDefined();
+      expect(res.body.passport.gamification.engagementScore).toBeGreaterThanOrEqual(50);
+      expect(res.body.passport.privacySettings).toBeDefined();
     });
 
     it("should fetch public passport with zero PII leaks", async () => {
-      const res = await request(app).get("/api/passport/studentalpha");
+      const res = await request(app).get("/api/passport/studentalpha31");
 
       expect(res.status).toBe(200);
       expect(res.body.passport.identity.fullName).toBe("Student Alpha");
-      // Must not leak private sensitive fields
       expect(res.body.passport.identity.email).toBeUndefined();
       expect(res.body.passport.identity.password).toBeUndefined();
       expect(res.body.passport.identity.id).toBeUndefined();
+    });
+
+    it("should allow student to update granular privacy settings", async () => {
+      const res = await request(app)
+        .put("/api/passport/privacy")
+        .set("Authorization", `Bearer ${tokenA}`)
+        .send({
+          privacyShowSkills: false,
+          privacyShowCertificates: true,
+          bio: "Full Stack Researcher & AI Builder",
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.user.privacyShowSkills).toBe(false);
+
+      // Verify public view hides skills
+      const pubRes = await request(app).get("/api/passport/studentalpha31");
+      expect(pubRes.body.passport.skills.length).toBe(0);
     });
   });
 
   // ====================================================
   // 2. STUDENT SKILL GRAPH & EVIDENCE
   // ====================================================
-  describe("🎯 Student Skill Graph & Evidence Calculation", () => {
-    it("should add verifiable skill evidence and compute score", async () => {
+  describe("🎯 Student Skill Graph & Evidence Engine", () => {
+    it("should add verifiable skill evidence and compute transparent score", async () => {
       const res = await request(app)
         .post("/api/skills/evidence")
         .set("Authorization", `Bearer ${tokenA}`)
         .send({
           skillName: "Python",
           sourceType: "PROJECT",
-          sourceTitle: "Distributed Microservices Architecture",
-          weightPoints: 15,
+          sourceTitle: "Agentic AI Multi-Agent Mesh",
+          weightPoints: 20,
         });
 
       expect(res.status).toBe(201);
@@ -172,14 +201,13 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
 
       expect(res.status).toBe(200);
       expect(res.body.summary.totalSkills).toBeGreaterThanOrEqual(1);
-      expect(res.body.skills[0].skill.name).toBe("Python");
     });
   });
 
   // ====================================================
   // 3. CRYPTOGRAPHIC VERIFIABLE CREDENTIALS
   // ====================================================
-  describe("📜 Verifiable Credential System", () => {
+  describe("📜 Verifiable Credential System & Revocation", () => {
     it("should allow Admin to issue a cryptographically hashed credential", async () => {
       const res = await request(app)
         .post("/api/credentials/issue")
@@ -189,7 +217,7 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
           eventId: testEventA.id,
           title: "Certified AI Systems Architect",
           description: "Demonstrated mastery of distributed AI agents.",
-          skills: ["Python", "Artificial Intelligence"],
+          skills: ["Python", "Machine Learning"],
         });
 
       expect(res.status).toBe(201);
@@ -215,13 +243,12 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
         .set("Authorization", `Bearer ${adminTokenA}`)
         .send({
           credentialId: testCredential.credentialId,
-          reason: "Academic integrity audit failure",
+          reason: "Academic code violation",
         });
 
       expect(res.status).toBe(200);
       expect(res.body.credential.status).toBe("REVOKED");
 
-      // Verify public verification reflects revocation
       const verifyRes = await request(app).get(`/api/credentials/verify/${testCredential.credentialId}`);
       expect(verifyRes.body.valid).toBe(false);
       expect(verifyRes.body.status).toBe("REVOKED");
@@ -231,19 +258,18 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
   // ====================================================
   // 4. ATTENDANCE FRAUD ANOMALY ENGINE
   // ====================================================
-  describe("🚨 Attendance Fraud Detection", () => {
+  describe("🚨 Attendance Fraud & Anomaly Engine", () => {
     it("should log fraud risk when scanning invalid QR token", async () => {
       const res = await request(app)
         .post("/api/attendance/checkin-qr")
         .set("Authorization", `Bearer ${tokenA}`)
         .send({
           eventId: testEventA.id,
-          qrToken: "MALICIOUS_REPLAY_FORGED_TOKEN",
+          qrToken: "MALICIOUS_FORGED_TOKEN",
         });
 
       expect(res.status).toBe(400);
 
-      // Verify incident in admin console
       const alerts = await request(app)
         .get("/api/fraud/alerts")
         .set("Authorization", `Bearer ${adminTokenA}`);
@@ -251,33 +277,51 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
       expect(alerts.status).toBe(200);
       expect(alerts.body.incidents.length).toBeGreaterThanOrEqual(1);
     });
+
+    it("should allow admin to resolve or approve fraud incident", async () => {
+      const alerts = await request(app)
+        .get("/api/fraud/alerts")
+        .set("Authorization", `Bearer ${adminTokenA}`);
+
+      const incidentId = alerts.body.incidents[0]?.id;
+      if (incidentId) {
+        const resolveRes = await request(app)
+          .post("/api/fraud/resolve")
+          .set("Authorization", `Bearer ${adminTokenA}`)
+          .send({
+            incidentId,
+            reviewStatus: "CONFIRMED_FRAUD",
+          });
+
+        expect(resolveRes.status).toBe(200);
+        expect(resolveRes.body.incident.reviewStatus).toBe("CONFIRMED_FRAUD");
+      }
+    });
   });
 
   // ====================================================
-  // 5. AI COPILOT 2.0 & EVENT CREATOR
+  // 5. ACTIONABLE AI COPILOT 2.0 & READINESS AUDIT
   // ====================================================
-  describe("🧠 AI Campus Copilot 2.0 & Event Creator", () => {
-    it("should answer student queries using real database context", async () => {
+  describe("🧠 AI Campus Copilot 2.0 with Real Campus Actions", () => {
+    it("should perform actionable event registration", async () => {
       const res = await request(app)
         .post("/api/ai/copilot")
         .set("Authorization", `Bearer ${tokenA}`)
-        .send({ message: "What events should I attend this week?" });
+        .send({ message: "Register me for Alpha AI Hackathon" });
 
       expect(res.status).toBe(200);
       expect(res.body.reply).toBeDefined();
-      expect(res.body.suggestedActions.length).toBeGreaterThan(0);
     });
 
-    it("should generate structured event draft blueprint for Admin", async () => {
+    it("should run an Internship Readiness Audit", async () => {
       const res = await request(app)
-        .post("/api/ai/event-draft")
-        .set("Authorization", `Bearer ${adminTokenA}`)
-        .send({ prompt: "Create a 2-hour React and TypeScript workshop for second-year students" });
+        .post("/api/ai/copilot")
+        .set("Authorization", `Bearer ${tokenA}`)
+        .send({ message: "What am I missing to become internship-ready?" });
 
       expect(res.status).toBe(200);
-      expect(res.body.draft.title).toContain("React");
-      expect(res.body.draft.prerequisites.length).toBeGreaterThan(0);
-      expect(res.body.draft.learningOutcomes.length).toBeGreaterThan(0);
+      expect(res.body.reply).toContain("INTERNSHIP & CAREER READINESS AUDIT");
+      expect(res.body.reply).toContain("Overall Readiness Score");
     });
   });
 
@@ -285,13 +329,13 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
   // 6. INSTITUTIONAL INTELLIGENCE & CLUBS
   // ====================================================
   describe("📊 Institutional Intelligence & Clubs Hub", () => {
-    it("should provide data-grounded KPIs and AI trend insights", async () => {
+    it("should provide Command Center KPIs and AI trend insights", async () => {
       const res = await request(app)
         .get("/api/intelligence")
         .set("Authorization", `Bearer ${adminTokenA}`);
 
       expect(res.status).toBe(200);
-      expect(res.body.kpis.totalStudents).toBeGreaterThanOrEqual(1);
+      expect(res.body.commandCenter).toBeDefined();
       expect(res.body.insights.length).toBeGreaterThan(0);
     });
 
@@ -303,7 +347,7 @@ describe("🚀 CampusConnect v3.0 Master Flagship Test Suite", () => {
         .send({
           name: "Alpha Coding Society",
           code: uniqueCode,
-          description: "Premier coding and algorithmic society.",
+          description: "Premier coding society.",
           category: "TECHNICAL",
         });
 

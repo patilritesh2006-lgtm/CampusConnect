@@ -33,10 +33,11 @@ describe("🧠 AI Campus Copilot 2.0 Component", () => {
     fireEvent.click(toggleButton);
 
     // Verify Copilot header appears
-    expect(screen.getByText(/AI Campus Copilot 2.0/i)).toBeInTheDocument();
+    const headers = screen.getAllByText(/AI Campus Copilot 2.0/i);
+    expect(headers.length).toBeGreaterThan(0);
 
     // Type query
-    const input = screen.getByPlaceholderText(/Ask about events, skills, or achievements/i);
+    const input = screen.getByPlaceholderText(/Ask Copilot or say/i);
     fireEvent.change(input, { target: { value: "Recommend workshops" } });
 
     // Submit form

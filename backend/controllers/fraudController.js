@@ -19,15 +19,16 @@ const getAlerts = async (req, res, next) => {
 
 const resolveAlert = async (req, res, next) => {
   try {
-    const { incidentId, status } = req.body;
-    if (!incidentId || !status) {
+    const { incidentId, status, reviewStatus } = req.body;
+    const finalStatus = status || reviewStatus;
+    if (!incidentId || !finalStatus) {
       return res.status(400).json({
         success: false,
         message: "Incident ID and resolution status are required.",
       });
     }
 
-    const updated = await resolveIncident(incidentId, status);
+    const updated = await resolveIncident(incidentId, finalStatus, req.user);
     return res.json({ success: true, incident: updated });
   } catch (err) {
     next(err);
